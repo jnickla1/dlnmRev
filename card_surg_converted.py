@@ -1,6 +1,7 @@
 import re
 import numpy as np
-
+import os
+import matplotlib.pyplot as plt
 import csv
 pad=30
 size=(4245,pad+1)
@@ -19,9 +20,9 @@ lto = np.empty(size)
 lto[:] = np.nan
 ltp = np.empty(size)
 ltp[:] = np.nan
-
-
-with open('/Users/JohnMatthew/Documents/deidentified_Mar8_envs.csv') as csv_file:
+fups=np.zeros(32)
+loc = os.path.expanduser('~/Documents/deidentified_Mar8.csv')
+with open(loc) as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     line_count = 0
     for row in csv_reader:
@@ -32,9 +33,11 @@ with open('/Users/JohnMatthew/Documents/deidentified_Mar8_envs.csv') as csv_file
             lt=re.findall('[\d+-\.e]+', row[2])
             if len(lt)<=pad:
                 lta[line_count-1,0:len(lt)]=np.array(lt, dtype=float)
+                fups[len(lt)]+=int(row[1])
             else:
                 print("t"+str(line_count))
                 lta[line_count-1,:-1]=np.array(lt[0:pad], dtype=float)
+                fups[pad+1]+=int(row[1])
             lo=re.findall('[\d+-\.e]+', row[3])
             if len(lo)<=pad:
                 lto[line_count-1,0:len(lo)]=np.array(lo, dtype=float)
@@ -59,3 +62,6 @@ headera=headera+'ID'
 np.savetxt('/Users/JohnMatthew/Documents/Mar8_envs_tem.csv',lta,delimiter = ',',header=headera)
 np.savetxt('/Users/JohnMatthew/Documents/Mar8_envs_o3.csv',lto,delimiter = ',',header=headera)
 np.savetxt('/Users/JohnMatthew/Documents/Mar8_envs_pm25.csv',ltp,delimiter = ',',header=headera)
+print(fups)
+plt.plot(range(0,32),fups,'bo')
+plt.title("# of post-surgical days for mortality/readmission pts")
