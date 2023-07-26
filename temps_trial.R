@@ -30,7 +30,7 @@ cblogit <- glm(dftemp$Composite_Readmit_Mort ~ cb, family = "binomial")
 cp <- crosspred(cb, cblogit, cen=mean(dftemp$tmean,na.rm=T),from=20, to=80, lag=c(0,30), by=1)
 cpcrop <- crosspred(cb, cblogit, cen=mean(dftemp$tmean,na.rm=T),from=20, to=80, lag=c(0,20), by=1)
 dev.new()
-plot(cpcrop, "contour", xlab="Temperature", key.title=title("RR"),
+plot(cpcrop, "contour", xlab="Temperature °F", key.title=title("RR"),
   plot.title=title("Contour plot",xlab="Temperature °F",ylab="Lag"))
 dev.new()
 plot(cp,"overall",ci.level=0.95,ylim=c(0.2,6),log="y",ylab="RR", xlab= "Temperature °F")

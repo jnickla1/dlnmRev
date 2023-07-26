@@ -65,3 +65,4 @@ np.savetxt('/Users/JohnMatthew/Documents/Mar8_envs_pm25.csv',ltp,delimiter = ','
 print(fups)
 plt.plot(range(0,32),fups,'bo')
 plt.title("# of post-surgical days for mortality/readmission pts")
+plt.show()
