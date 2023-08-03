@@ -47,3 +47,4 @@ title("Lagged Risk Profile at 74°F")
 dev.new()
 plot(cp,"slices", var=65,ci.level=0.95,ylim=c(0.2,6),log="y",ylab="RR", xlab= "Lag",add=TRUE, color="green")
 title("Lagged Risk Profile at 65°F")
+

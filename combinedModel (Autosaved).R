@@ -30,7 +30,7 @@ lagnk <- 4
 argvar <- list(fun="bs",degree=2,knots=quantile(dftempall[2:31], varper/100,na.rm=T))
 
 cb2 <- crossbasis(dftempall[2:31],lag=lag,argvar=argvar, arglag=list(knots=logknots(lag,lagnk)))
-ns2 <- onebasis(dftempall$month, fun='ns',df=8)
+ns2 <- onebasis(dftempall$month, fun='ns',df=4)
 modelcomb <- glm(paste("Composite_Readmit_Mort",fit2$final,"+ dow + cb2 + ns2"), data = dftempall, family = "binomial",na.action=na.exclude)
 cp2 <- crosspred(cb2, modelcomb, cen=mean(dftempall$tmean,na.rm=T),from=20, to=80, lag=c(0,30), by=1)
 dev.new()
