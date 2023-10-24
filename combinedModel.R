@@ -11,11 +11,10 @@ df2[fcols] <- lapply(df2[fcols], factor)
 df2 <- df2[ -delcols ]
 df2$dow <-as.factor(my_data$Disch_Day_of_Week)
 df2$month <- my_data$Disch_Month
-df2$ID <- seq.int(nrow(df2))
+df2$ID <- seq.int(nrow(df2))-1
 alllogit <- glm(Composite_Readmit_Mort ~ ., data = df2, family = "binomial",na.action=na.exclude)
 fit2 <- stepCriterion(alllogit, criterion="bic")
 model2 <- glm(paste("Composite_Readmit_Mort",fit2$final), data = df2, family = "binomial",na.action=na.exclude)
-
 
 tempers <- read.csv("~/Documents/Mar8_envs_tem.csv",sep=',',header=TRUE)
 dftempall <- merge(tempers,df2,by="ID")
