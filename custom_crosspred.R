@@ -1,7 +1,8 @@
 custom_crosspred <- function (basis, model = NULL, coef = NULL, vcov = NULL, model.link = NULL, 
-    at = NULL, from = NULL, to = NULL, by = NULL, lag, bylag = 1, 
+    at = NULL, from = NULL, to = NULL, by = NULL, lag,
     cen = NULL, ci.level = 0.95, cumul = FALSE) 
-{   source("~/Documents/dlnmRev/mkXpred3.R")
+{   bylag <- 1L
+    source("~/Documents/dlnmRev/mkXpred3.R")
     environment(mkXpred3) <- asNamespace('dlnm')
     type <- if (any(class(basis) %in% "crossbasis")) 
         "cb"
@@ -69,8 +70,8 @@ custom_crosspred <- function (basis, model = NULL, coef = NULL, vcov = NULL, mod
     else ncol(basis)
     coef[is.na(coef)] <- 0
     vcov[is.na(vcov)] <- 0
-    if (length(coef) != npar || length(coef) != dim(vcov)[1] )# || need to deal with the nan coeff values at some point
-       # any(is.na(coef)) || any(is.na(vcov))) 
+    if (length(coef) != npar || length(coef) != dim(vcov)[1] || # need to deal with the nan coeff values at some point
+        any(is.na(coef)) || any(is.na(vcov))) 
         stop("coef/vcov not consistent with basis matrix. See help(crosspred)")
     range <- if (type == "gam") 
         range(model$model[[basis$term[1]]])
@@ -90,18 +91,51 @@ custom_crosspred <- function (basis, model = NULL, coef = NULL, vcov = NULL, mod
     matse <- matrix(sqrt(pmax(0, rowSums((Xpred %*% vcov) * Xpred))), 
         length(predvar), length(predlag)*length(predlag))
     rownames(matfit) <- rownames(matse) <- predvar
-    colnames(matfit) <- colnames(matse) <- outer("lag", predlag, 
-        paste, sep = "")
-    predlag <- seqlag(lag)
+    colnames(matfit) <- colnames(matse) <- paste0("lag:l", rep(predlag, times = length(predlag)),
+               ":d", rep(predlag, each=length(predlag))) #note this is flipped, with l changing every column and d changing slower.
+    #predlag <- seqlag(lag) # why recreate this?: only if bylag !=1
     Xpred <- mkXpred3(type, basis, at, predvar, predlag, cen)
     Xpredall <- 0
+    #two kinds of collapsing: either on post discharge day d what is the risk, or lag day l before now what is the risk
+    #note that d-l>=0, and i = d*length(predvar)+l if both d and l and i are here 0-indexed, 
+    XpredD <- matrix(data=0,nrow=length(predvar)*length(predlag),ncol=length(coef))
+    for (l in (seq(length(predlag))-1) ) {
+      ds <- seq(l,30)
+      inds <- ds*length(predlag)+l
+      XTemp <- matrix(data=0,nrow=length(predvar),ncol=length(coef))
+      for (i in inds){
+        ind <- seq(length(predvar)) + length(predvar) * (i)
+        XTemp <- XTemp + Xpred[ind, , drop = FALSE] }
+      insertp <- seq(length(predvar)) + length(predvar) * (l)
+      XpredD[insertp, ] <- XTemp }
+    dayfit <- matrix(XpredD %*% coef, length(predvar), length(predlag))
+    dayse <- matrix(sqrt(pmax(0, rowSums((XpredD %*% vcov) * XpredD))), 
+                    length(predvar), length(predlag))
+    rownames(dayfit) <- rownames(dayse) <- predvar
+    colnames(dayfit) <- colnames(dayse) <- predlag #outer("day", predlag, paste, sep = "")
+    
+    XpredL <- matrix(data=0,nrow=length(predvar)*length(predlag),ncol=length(coef))
+    for (d in (seq(length(predlag))-1) ) {
+      ls<-seq(0,d)
+      inds <- d*length(predlag)+ls
+      XTemp <- matrix(data=0,nrow=length(predvar),ncol=length(coef))
+      for (i in inds){
+        ind <- seq(length(predvar)) + length(predvar) * (i)
+        XTemp <- XTemp + Xpred[ind, , drop = FALSE] }
+      insertp <- seq(length(predvar)) + length(predvar) * (d)
+      XpredL[insertp, ] <- XTemp }
+    lagfit <- matrix(XpredL %*% coef, length(predvar), length(predlag))
+    lagse <- matrix(sqrt(pmax(0, rowSums((XpredL %*% vcov) * XpredL))), 
+                    length(predvar), length(predlag))
+    rownames(lagfit) <- rownames(lagse) <- predvar
+    colnames(lagfit) <- colnames(lagse) <- predlag #outer("lag", predlag, paste, sep = "")
+    
     if (cumul) {
-        cumfit <- cumse <- matrix(0, length(predvar), length(predlag))
+        cumfit <- cumse <- matrix(0, length(predvar), length(predlag)*length(predlag))
     }
-    for (i in seq(length(predlag))) {
-        ind <- seq(length(predvar)) + length(predvar) * (i - 
-            1)
-        Xpredall <- Xpredall + Xpred[ind, , drop = FALSE]
+    for (i in seq(length(predlag))) {#here i starts at 1, summing to get one risk for one temperature
+        ind <- seq(length(predvar)) + length(predvar) * (i - 1)
+        Xpredall <- Xpredall + XpredL[ind, , drop = FALSE]
         if (cumul) {
             cumfit[, i] <- Xpredall %*% coef
             cumse[, i] <- sqrt(pmax(0, rowSums((Xpredall %*% 
@@ -134,6 +168,8 @@ custom_crosspred <- function (basis, model = NULL, coef = NULL, vcov = NULL, mod
         names(list$allRRlow) <- names(allfit)
         list$allRRhigh <- exp(allfit + z * allse)
         names(list$allRRhigh) <- names(allfit)
+        list$lagRRfit <- exp(lagfit)
+        list$dayRRfit <- exp(dayfit)
         if (cumul) {
             list$cumRRfit <- exp(cumfit)
             list$cumRRlow <- exp(cumfit - z * cumse)
@@ -157,4 +193,19 @@ custom_crosspred <- function (basis, model = NULL, coef = NULL, vcov = NULL, mod
     list$model.link <- model.link
     class(list) <- "crosspred"
     return(list)
+}
+
+
+crosspred.image.real <- function(inmat) { 
+  #levels <- exp(pretty(log(x), 10))
+  #x <- inmat[,ncol(inmat):1]
+  #levels <- seq(-3,3,0.5)
+  x <- inmat
+  levels <- seq(-5.5,5.5,0.5)
+  
+  col1 <- colorRampPalette(c("blue", "white"))
+  col2 <- colorRampPalette(c("white", "red"))
+  col <- c(col1(sum(levels < 0)), col2(sum(levels > 0)))
+  filled.contour(x = as.integer(rownames(inmat)), y = as.integer(colnames(inmat)), 
+                 z = log(x), col = col, levels = levels )
 }

@@ -55,9 +55,9 @@ print("Dataframe converted")
 rm(replicated_rows)
 rm(replicated_dfs)
 
-varper <- c(10,25,50,75,90)
+varper <- c(10,30,60,80)
 lag <- 29
-lagnk <- 3
+lagnk <- 2
 argvar <- list(fun="bs",degree=2,knots=quantile(dftempall[2:31], varper/100,na.rm=T))
 
 source("~/Documents/dlnmRev/custom_crossbasis.R")
@@ -65,4 +65,6 @@ environment(custom_crossbasis) <- asNamespace('dlnm')
 cb2 <- custom_crossbasis(final_df$curTemp,lag=lag,argvar=argvar, arglag=list(knots=logknots(lag,lagnk)),group=final_df$ID, pslags=final_df$curFup)
 print("Crossbasis formed")
 cblogit <- glm(final_df$event ~ cb2, family = "binomial", weights=final_df$weight_numpd)
-print("Logit fitted")
+print("Logit fitted, with NA values")
+sum(is.na(cblogit$coefficients))
+print("reduce degrees of freedom to cut back on NA values.")
