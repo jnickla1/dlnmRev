@@ -25,7 +25,7 @@ dftempall <- dftempall[!is.na(dftempall$t0),]
 
 # Create an empty list to store replicated data frames
 replicated_dfs <- vector("list", nrow(dftempall))
-for (i in 1:12) { # nrow(dftempall)) {
+for (i in 1:nrow(dftempall)) {
   # Get the number of replications from "num_post_disc"
   num_replications <- dftempall$num_post_disc[i]
   # Create a data frame with the current row replicated by num_replications
@@ -49,6 +49,20 @@ for (i in 1:12) { # nrow(dftempall)) {
   # Store the replicated data frames in the list
   replicated_dfs <- c(replicated_dfs, replicated_rows)
 }
+print("List compiled")
 final_df <- as.data.frame(data.table::rbindlist(replicated_dfs))
+print("Dataframe converted")
 rm(replicated_rows)
 rm(replicated_dfs)
+
+varper <- c(10,25,50,75,90)
+lag <- 29
+lagnk <- 3
+argvar <- list(fun="bs",degree=2,knots=quantile(dftempall[2:31], varper/100,na.rm=T))
+
+source("~/Documents/dlnmRev/custom_crossbasis.R")
+environment(custom_crossbasis) <- asNamespace('dlnm')
+cb2 <- custom_crossbasis(final_df$curTemp,lag=lag,argvar=argvar, arglag=list(knots=logknots(lag,lagnk)),group=final_df$ID, pslags=final_df$curFup)
+print("Crossbasis formed")
+cblogit <- glm(final_df$event ~ cb2, family = "binomial", weights=final_df$weight_numpd)
+print("Logit fitted")

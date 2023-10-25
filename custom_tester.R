@@ -2,6 +2,8 @@ library("readxl")
 library("dlnm")
 library("splines")
 library("glmtoolbox")
+library("dplyr")
+library("data.table")
 
 my_data <- read_excel("~/Documents/deidentified_Jul28.xlsx")
 delcols <-c(30,33,35)
@@ -12,24 +14,54 @@ df2 <- df2[ -delcols ]
 df2$dow <-as.factor(my_data$Disch_Day_of_Week)
 df2$month <- my_data$Disch_Month
 df2$ID <- seq.int(nrow(df2))-1
-alllogit <- glm(Composite_Readmit_Mort ~ ., data = df2, family = "binomial",na.action=na.exclude)
-fit2 <- stepCriterion(alllogit, criterion="bic")
-model2 <- glm(paste("Composite_Readmit_Mort",fit2$final), data = df2, family = "binomial",na.action=na.exclude)
+
 
 tempers <- read.csv("~/Documents/Mar8_envs_tem.csv",sep=',',header=TRUE)
+tempers$num_post_disc <- rowSums(!is.na(tempers)) - 1
+tempers$tmean <- rowMeans(tempers[1:30],na.rm=TRUE)
 dftempall <- merge(tempers,df2,by="ID")
-dftempall$tmean <- rowMeans(dftempall[2:31],na.rm=TRUE)
-for (x in 2:31) {
-  dftempall[,x] <- ifelse(is.na(dftempall[,x]), dftempall$tmean, dftempall[,x])
+dftempall <- dftempall[!is.na(dftempall$t0),]
+
+
+# Create an empty list to store replicated data frames
+replicated_dfs <- vector("list", nrow(dftempall))
+for (i in 1:12) { # nrow(dftempall)) {
+  # Get the number of replications from "num_post_disc"
+  num_replications <- dftempall$num_post_disc[i]
+  # Create a data frame with the current row replicated by num_replications
+  replicated_row <- dftempall[i, -c(2:31)]
+  replicated_row$curTemp=c(-100.01)
+  replicated_row$curFup=c(0)
+  replicated_row$event=c(0)
+  replicated_row$weight_numpd <- 1/num_replications
+  replicated_rows <- replicate(num_replications, replicated_row, simplify = FALSE)
+  # Add a new column for the follow-up measurement
+  
+  # Add the follow-up column to each replicated data frame
+  for (j in 1:num_replications) {
+    replicated_rows[j][[1]]$curTemp <- dftempall[i,(1+j)]
+    replicated_rows[j][[1]]$curFup<- (j)
+    if (j==num_replications) {
+      replicated_rows[j][[1]]$event=dftempall[i,]$Composite_Readmit_Mort
+    }
+  }
+  
+  # Store the replicated data frames in the list
+  replicated_dfs <- c(replicated_dfs, replicated_rows)
 }
+final_df <- as.data.frame(data.table::rbindlist(replicated_dfs))
+rm(replicated_rows)
+rm(replicated_dfs)
+
 
 varper <- c(10,25,50,75,90)
 lag <- 29
-lagnk <- 4
+lagnk <- 3
 argvar <- list(fun="bs",degree=2,knots=quantile(dftempall[2:31], varper/100,na.rm=T))
 
 
 source("~/Documents/dlnmRev/custom_crossbasis.R")
 environment(custom_crossbasis) <- asNamespace('dlnm')
-cb1 <- crossbasis(dftempall[2:31],lag=lag,argvar=argvar, arglag=list(knots=logknots(lag,lagnk)))
-cb2 <- custom_crossbasis(dftempall[2:31],lag=lag,argvar=argvar, arglag=list(knots=logknots(lag,lagnk)))
+cb2 <- custom_crossbasis(final_df$curTemp,lag=lag,argvar=argvar, arglag=list(knots=logknots(lag,lagnk)),group=final_df$ID, pslags=final_df$curFup)
+#cb1 <- crossbasis(dftempall[2:31],lag=lag,argvar=argvar, arglag=list(knots=logknots(lag,lagnk)))
+#cb2 <- custom_crossbasis(dftempall[2:31],lag=lag,argvar=argvar, arglag=list(knots=logknots(lag,lagnk)))
