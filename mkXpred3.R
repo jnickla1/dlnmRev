@@ -1,6 +1,6 @@
 mkXpred3 <- function (type, basis, at, predvar, predlag, cen) 
 {
-  varvec <- rep(at, length(predlag)*length(predlag))
+  varvec <- rep(at, length(predlag)*length(predlag)) #note this grouping is flipped to allow matrix creation 
   lagvec <- rep(predlag, each = length(predvar), times = length(predlag))
   dagvec <- rep(predlag, each = length(predvar)*length(predlag))
   if (type == "cb") {

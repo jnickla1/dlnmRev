@@ -98,23 +98,18 @@ custom_crosspred <- function (basis, model = NULL, coef = NULL, vcov = NULL, mod
     Xpredall <- 0
     #two kinds of collapsing: either on post discharge day d what is the risk, or lag day l before now what is the risk
     #note that d-l>=0, and i = d*length(predvar)+l if both d and l and i are here 0-indexed, 
-    XpredD <- matrix(data=0,nrow=length(predvar)*length(predlag),ncol=length(coef))
+    XpredL <- matrix(data=0,nrow=length(predvar)*length(predlag),ncol=length(coef))
     for (l in (seq(length(predlag))-1) ) {
       ds <- seq(l,30)
       inds <- ds*length(predlag)+l
       XTemp <- matrix(data=0,nrow=length(predvar),ncol=length(coef))
       for (i in inds){
         ind <- seq(length(predvar)) + length(predvar) * (i)
-        XTemp <- XTemp + Xpred[ind, , drop = FALSE] }
+        XTemp <- XTemp + Xpred[ind, , drop = FALSE]/length(ds) }
       insertp <- seq(length(predvar)) + length(predvar) * (l)
-      XpredD[insertp, ] <- XTemp }
-    dayfit <- matrix(XpredD %*% coef, length(predvar), length(predlag))
-    dayse <- matrix(sqrt(pmax(0, rowSums((XpredD %*% vcov) * XpredD))), 
-                    length(predvar), length(predlag))
-    rownames(dayfit) <- rownames(dayse) <- predvar
-    colnames(dayfit) <- colnames(dayse) <- predlag #outer("day", predlag, paste, sep = "")
+      XpredL[insertp, ] <- XTemp }
     
-    XpredL <- matrix(data=0,nrow=length(predvar)*length(predlag),ncol=length(coef))
+    XpredD <- matrix(data=0,nrow=length(predvar)*length(predlag),ncol=length(coef))
     for (d in (seq(length(predlag))-1) ) {
       ls<-seq(0,d)
       inds <- d*length(predlag)+ls
@@ -123,7 +118,14 @@ custom_crosspred <- function (basis, model = NULL, coef = NULL, vcov = NULL, mod
         ind <- seq(length(predvar)) + length(predvar) * (i)
         XTemp <- XTemp + Xpred[ind, , drop = FALSE] }
       insertp <- seq(length(predvar)) + length(predvar) * (d)
-      XpredL[insertp, ] <- XTemp }
+      XpredD[insertp, ] <- XTemp } #write for a particular day
+    
+    dayfit <- matrix(XpredD %*% coef, length(predvar), length(predlag))
+    dayse <- matrix(sqrt(pmax(0, rowSums((XpredD %*% vcov) * XpredD))), 
+                    length(predvar), length(predlag))
+    rownames(dayfit) <- rownames(dayse) <- predvar
+    colnames(dayfit) <- colnames(dayse) <- predlag #outer("day", predlag, paste, sep = "")
+    
     lagfit <- matrix(XpredL %*% coef, length(predvar), length(predlag))
     lagse <- matrix(sqrt(pmax(0, rowSums((XpredL %*% vcov) * XpredL))), 
                     length(predvar), length(predlag))
@@ -201,7 +203,7 @@ crosspred.image.real <- function(inmat) {
   #x <- inmat[,ncol(inmat):1]
   #levels <- seq(-3,3,0.5)
   x <- inmat
-  levels <- seq(-5.5,5.5,0.5)
+  levels <- seq(-.5,.5,0.1)
   
   col1 <- colorRampPalette(c("blue", "white"))
   col2 <- colorRampPalette(c("white", "red"))
