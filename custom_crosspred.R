@@ -105,7 +105,7 @@ custom_crosspred <- function (basis, model = NULL, coef = NULL, vcov = NULL, mod
       XTemp <- matrix(data=0,nrow=length(predvar),ncol=length(coef))
       for (i in inds){
         ind <- seq(length(predvar)) + length(predvar) * (i)
-        XTemp <- XTemp + Xpred[ind, , drop = FALSE]/length(ds) }
+        XTemp <- XTemp + Xpred[ind, , drop = FALSE]} #/length(ds) }
       insertp <- seq(length(predvar)) + length(predvar) * (l)
       XpredL[insertp, ] <- XTemp }
     
@@ -116,7 +116,7 @@ custom_crosspred <- function (basis, model = NULL, coef = NULL, vcov = NULL, mod
       XTemp <- matrix(data=0,nrow=length(predvar),ncol=length(coef))
       for (i in inds){
         ind <- seq(length(predvar)) + length(predvar) * (i)
-        XTemp <- XTemp + Xpred[ind, , drop = FALSE] }
+        XTemp <- XTemp + Xpred[ind, , drop = FALSE] /length(ls)}
       insertp <- seq(length(predvar)) + length(predvar) * (d)
       XpredD[insertp, ] <- XTemp } #write for a particular day
     
@@ -198,12 +198,12 @@ custom_crosspred <- function (basis, model = NULL, coef = NULL, vcov = NULL, mod
 }
 
 
-crosspred.image.real <- function(inmat) { 
+crosspred.image.real <- function(inmat,levels=seq(-.5,.5,0.1)) { 
   #levels <- exp(pretty(log(x), 10))
   #x <- inmat[,ncol(inmat):1]
   #levels <- seq(-3,3,0.5)
   x <- inmat
-  levels <- seq(-.5,.5,0.1)
+
   
   col1 <- colorRampPalette(c("blue", "white"))
   col2 <- colorRampPalette(c("white", "red"))

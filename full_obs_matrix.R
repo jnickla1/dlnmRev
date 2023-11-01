@@ -68,3 +68,9 @@ cblogit <- glm(final_df$event ~ cb2, family = "binomial", weights=final_df$weigh
 print("Logit fitted, with NA values")
 sum(is.na(cblogit$coefficients))
 print("reduce degrees of freedom to cut back on NA values.")
+
+source("~/Documents/dlnmRev/custom_crosspred.R")
+environment(custom_crosspred) <- asNamespace('dlnm')
+cp <- custom_crosspred(cb2, cblogit,from=20, to=80, lag=c(0,30), by=1)
+crosspred.image.real(cp$lagRRfit,levels=seq(-5.5,5.5,0.5))
+crosspred.image.real(cp$dayRRfit)
