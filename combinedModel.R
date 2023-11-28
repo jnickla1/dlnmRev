@@ -3,7 +3,7 @@ library("dlnm")
 library("splines")
 library("glmtoolbox")
 
-my_data <- read_excel("~/Documents/deidentified_Jul28.xlsx")
+my_data <- read_excel("~/Documents/dlnmRevData/deidentified_Jul28.xlsx")
 delcols <-c(30,33,35)
 fcols <-c(3:4,6,8:28,37:45,50,52:55,57:75)
 df2 <- my_data[ -c(1,3:7) ]

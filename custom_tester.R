@@ -5,7 +5,7 @@ library("glmtoolbox")
 library("dplyr")
 library("data.table")
 
-my_data <- read_excel("~/Documents/deidentified_Jul28.xlsx")
+my_data <- read_excel("~/Documents/dlnmRevData/deidentified_Jul28.xlsx")
 delcols <-c(30,33,35)
 fcols <-c(3:4,6,8:28,37:45,50,52:55,57:75)
 df2 <- my_data[ -c(1,3:7) ]
@@ -16,7 +16,7 @@ df2$month <- my_data$Disch_Month
 df2$ID <- seq.int(nrow(df2))-1
 
 
-tempers <- read.csv("~/Documents/Mar8_envs_tem.csv",sep=',',header=TRUE)
+tempers <- read.csv("~/Documents/dlnmRevData/Mar8_envs_tem.csv",sep=',',header=TRUE)
 tempers$num_post_disc <- rowSums(!is.na(tempers)) - 1
 tempers$tmean <- rowMeans(tempers[1:30],na.rm=TRUE)
 dftempall <- merge(tempers,df2,by="ID")

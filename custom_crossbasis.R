@@ -18,7 +18,7 @@ custom_crossbasis <- function (x, lag, argvar = list(), arglag = list(), group =
     arglag$intercept <- TRUE
   arglag$cen <- NULL
   basislag <- do.call("onebasis", modifyList(arglag, list(x = seqlag(lag))))
-  #if (!is.null(group)) 
+  #if (!is.null(group))
   #  checkgroup(group, x, basisvar, lag)
   crossbasis <- matrix(0, nrow = dim[1], ncol = ncol(basisvar) * 
                          ncol(basislag)*ncol(basislag))

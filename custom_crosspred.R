@@ -87,7 +87,8 @@ custom_crosspred <- function (basis, model = NULL, coef = NULL, vcov = NULL, mod
     if (type == "cb") 
         attributes(basis)$argvar$cen <- NULL
     Xpred <- mkXpred3(type, basis, at, predvar, predlag, cen)
-    matfit <- matrix(Xpred %*% coef, length(predvar), length(predlag)*length(predlag))
+    matfit <- matrix(Xpred %*% coef, length(predvar), length(predlag)*length(predlag)) #+model$coefficients[1]
+
     matse <- matrix(sqrt(pmax(0, rowSums((Xpred %*% vcov) * Xpred))), 
         length(predvar), length(predlag)*length(predlag))
     rownames(matfit) <- rownames(matse) <- predvar
@@ -105,7 +106,7 @@ custom_crosspred <- function (basis, model = NULL, coef = NULL, vcov = NULL, mod
       XTemp <- matrix(data=0,nrow=length(predvar),ncol=length(coef))
       for (i in inds){
         ind <- seq(length(predvar)) + length(predvar) * (i)
-        XTemp <- XTemp + Xpred[ind, , drop = FALSE]} #/length(ds) }
+        XTemp <- XTemp + Xpred[ind, , drop = FALSE] /length(ds) }
       insertp <- seq(length(predvar)) + length(predvar) * (l)
       XpredL[insertp, ] <- XTemp }
     
@@ -116,7 +117,7 @@ custom_crosspred <- function (basis, model = NULL, coef = NULL, vcov = NULL, mod
       XTemp <- matrix(data=0,nrow=length(predvar),ncol=length(coef))
       for (i in inds){
         ind <- seq(length(predvar)) + length(predvar) * (i)
-        XTemp <- XTemp + Xpred[ind, , drop = FALSE] /length(ls)}
+        XTemp <- XTemp + Xpred[ind, , drop = FALSE] } # /length(ls)}
       insertp <- seq(length(predvar)) + length(predvar) * (d)
       XpredD[insertp, ] <- XTemp } #write for a particular day
     
@@ -144,7 +145,7 @@ custom_crosspred <- function (basis, model = NULL, coef = NULL, vcov = NULL, mod
                 vcov) * Xpredall)))
         }
     }
-    allfit <- as.vector(Xpredall %*% coef)
+    allfit <- as.vector(Xpredall %*% coef) #+ model$coefficients[1]
     allse <- sqrt(pmax(0, rowSums((Xpredall %*% vcov) * Xpredall)))
     names(allfit) <- names(allse) <- predvar
     if (cumul) {
@@ -198,16 +199,15 @@ custom_crosspred <- function (basis, model = NULL, coef = NULL, vcov = NULL, mod
 }
 
 
-crosspred.image.real <- function(inmat,levels=seq(-.5,.5,0.1)) { 
+crosspred.image.real <- function(inmat,levels=seq(-.5,.5,0.1),titled="title") { 
   #levels <- exp(pretty(log(x), 10))
   #x <- inmat[,ncol(inmat):1]
   #levels <- seq(-3,3,0.5)
   x <- inmat
 
-  
   col1 <- colorRampPalette(c("blue", "white"))
   col2 <- colorRampPalette(c("white", "red"))
   col <- c(col1(sum(levels < 0)), col2(sum(levels > 0)))
   filled.contour(x = as.integer(rownames(inmat)), y = as.integer(colnames(inmat)), 
-                 z = log(x), col = col, levels = levels )
+                 z = log(x), col = col, levels = levels,title = title(main=titled) )
 }

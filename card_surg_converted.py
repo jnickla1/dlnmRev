@@ -21,7 +21,7 @@ lto[:] = np.nan
 ltp = np.empty(size)
 ltp[:] = np.nan
 fups=np.zeros(32)
-loc = os.path.expanduser('~/Documents/deidentified_Mar8.csv')
+loc = os.path.expanduser('~/Documents/dlnmRevData/deidentified_Mar8.csv')
 with open(loc) as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     line_count = 0
@@ -59,9 +59,9 @@ headera=""
 for i in range(30):
     headera=headera+'t'+ str(i)+','
 headera=headera+'ID'
-np.savetxt('/Users/JohnMatthew/Documents/Mar8_envs_tem.csv',lta,delimiter = ',',header=headera)
-np.savetxt('/Users/JohnMatthew/Documents/Mar8_envs_o3.csv',lto,delimiter = ',',header=headera)
-np.savetxt('/Users/JohnMatthew/Documents/Mar8_envs_pm25.csv',ltp,delimiter = ',',header=headera)
+np.savetxt('~/Documents/dlnmRevData/Mar8_envs_tem.csv',lta,delimiter = ',',header=headera)
+np.savetxt('~/Documents/dlnmRevData/Mar8_envs_o3.csv',lto,delimiter = ',',header=headera)
+np.savetxt('~/Documents/dlnmRevData/Mar8_envs_pm25.csv',ltp,delimiter = ',',header=headera)
 print(fups)
 plt.plot(range(0,32),fups,'bo')
 plt.title("# of post-surgical days for mortality/readmission pts")

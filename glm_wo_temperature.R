@@ -1,5 +1,5 @@
 library("readxl")
-my_data <- read_excel("~/Documents/deidentified_Mar8.xlsx")
+my_data <- read_excel("~/Documents/dlnmRevData/deidentified_Mar8.xlsx")
 df <- my_data[ -c(1,3:5) ]
 delcols <-c(30,33,35)
 fcols <-c(3:4,6,8:28,37:45,50,52:55,57:83)

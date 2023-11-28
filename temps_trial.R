@@ -1,8 +1,8 @@
 library("readxl")
 
-tempers <- read.csv("~/Documents/Mar8_envs_tem.csv",sep=',',header=TRUE)
+tempers <- read.csv("~/Documents/dlnmRevData/Mar8_envs_tem.csv",sep=',',header=TRUE)
 
-my_data <- read_excel("~/Documents/deidentified_Mar8.xlsx")
+my_data <- read_excel("~/Documents/dlnmRevData/deidentified_Mar8.xlsx")
 df <- my_data[ c(1:2) ]
 
 dftemp <- merge(tempers,df,by="ID")
