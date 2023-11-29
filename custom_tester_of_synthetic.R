@@ -48,7 +48,6 @@ lag <- 29
 lagnk <- 2
 argvar <- list(fun="bs",degree=2,knots=quantile(dftempall[1:30], varper/100,na.rm=T))
 
-
 source("~/Documents/dlnmRev/custom_crossbasis.R")
 environment(custom_crossbasis) <- asNamespace('dlnm')
 cb2 <- custom_crossbasis(final_df$curTemp,lag=lag,argvar=argvar, arglag=list(knots=logknots(lag,lagnk)),group=final_df$ID, pslags=final_df$curFup)
@@ -75,6 +74,7 @@ for (x in 2:30) { tempers[,x] <- ifelse( (is.na(tempers[,x]) & !(tempers[,x-1] >
 p_res=colSums(tempers[,1:30]==1000, na.rm=TRUE)/colSums(tempers[,1:30]>-10, na.rm=TRUE)
 plot(p_res, type="l")
 points(collapsedD/10+exp(cblogit$coefficients[1]))
+arglag <- list(knots=logknots(lag,lagnk))
 arglag$intercept <- TRUE
 basislag <- do.call("onebasis", modifyList(arglag, list(x = seq(0,29))))
 ob <- glm(p_res ~ basislag+ 0)
