@@ -47,13 +47,20 @@ varper <- c(10,30,80)
 lag <- 29
 lagnk <- 2
 #argvar <- list(fun="bs",degree=2,knots=quantile(dftempall[1:30], varper/100,na.rm=T))
-argvar <- list(fun="strata",breaks=quantile(dftempall[1:30], varper/100,na.rm=T))
+argvar <- list(fun="strata",breaks=quantile(dftempall[1:30], varper/100,na.rm=T), intercept=TRUE)
 arglag2 <-list(fun="strata", breaks = c(6), intercept=TRUE)
 
 source("~/Documents/dlnmRev/custom_crossbasis.R")
 environment(custom_crossbasis) <- asNamespace('dlnm')
 cb2 <- custom_crossbasis(final_df$curTemp,lag=lag,argvar=argvar, arglag=arglag2,group=final_df$ID, pslags=final_df$curFup)
 print("Crossbasis formed")
+
+do.call("onebasis", modifyList(arglag2, list(x = seq(0,lag))))
+tempmin <- floor( min(tempers[1:30], na.rm = TRUE))
+tempmax <- ceiling( max(tempers[1:30], na.rm = TRUE))
+do.call("onebasis", modifyList(argvar, list(x = seq(tempmin,tempmax))))
+
+
 cblogit <- glm(final_df$Outcome ~ cb2, family = "binomial", weights=final_df$weight_numpd)
 print("Logit fitted, with NA values")
 print(sum(is.na(cblogit$coefficients)))

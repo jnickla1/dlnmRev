@@ -26,25 +26,26 @@ custom_crossbasis <- function (x, lag, argvar = list(), arglag = list(), group =
   colnames(mat) <- seq(0,lag[2])
   gs <- table(group)
   for (v in seq(length = ncol(basisvar))) {
-    if (dim[2] == 1L) {
-      st<-1L
+    if (dim[2] == 1L) { #data is just a list of values with group identifying which belongs to each patient
+      st<-1L 
       for (gi in gs){
-      en<- st+ gi -1
-      mat[st:en, 1:gi ] <- as.matrix(Lag(basisvar[st:en, v], seqlag(c(0, gi - 1))))
+      en<- st+ gi -1 #last entry for each patient, st is the first
+      mat[st:en, 1:gi ] <- as.matrix(Lag(basisvar[st:en, v], seqlag(c(0, gi - 1)))) #store each lag day in the past for each pateint
       st<- en + 1L
       }
     }
     else mat <- matrix(basisvar[, v], ncol = diff(lag) + 1)
-    mat[is.na(mat)] <- 0
+    mat[is.na(mat)] <- 0 #zeros where nothing was reached yet
     for (d in seq(length = ncol(basislag))) {
-      dbasislag <- basislag[as.integer(pslags), d]
+      dbasislag <- basislag[as.integer(pslags), d] #compute lags
     for (l in seq(length = ncol(basislag))) {
+      #compute the influence of each crossbasis function on the computed history*lag triangle for each patient
       crossbasis[, ncol(basislag)*(ncol(basislag) * (v - 1) + l-1) + d] <- dbasislag * (mat %*% (basislag[, l]))
     }}
   }
   cn <- paste0("v", rep(seq(ncol(basisvar)), each = ncol(basislag)*ncol(basislag)), 
                ".l", rep(seq(ncol(basislag)), each = ncol(basislag), times=ncol(basisvar)),
-               ".d", rep(seq(ncol(basislag)), ncol(basisvar)*ncol(basislag)))
+               ".d", rep(seq(ncol(basislag)), ncol(basisvar)*ncol(basislag))) #naming columns
   dimnames(crossbasis) <- list(rownames(x), cn)
   ind <- match(names(formals(attributes(basisvar)$fun)), names(attributes(basisvar)), 
                nomatch = 0)
