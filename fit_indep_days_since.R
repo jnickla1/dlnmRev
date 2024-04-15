@@ -63,20 +63,22 @@ chisq.test(chidsea)
 chidsea$frac = chidsea[,1] / (chidsea[,1]+chidsea[,2])
 #3-6 is blood prods
 delcols <-c(3:6, 20, 60, 89, 138:139) #,18,40,42,47,89, 98:127,138:139) #remove temperature initially
-fcols <-c(1, 9:12,14,17:20,22:24,28,30:31,33:69,71:73,78,80:81,83:86,89:92,132:142,144)
+fcols <-c(1, 9:12,14,17:20,22:24,28,30:31,33:69,71:73,78,80:81,83:86,89:92,132:142)
 df[fcols] <- lapply(df[fcols], factor)
 df <- df[ -delcols ]
-
+df <- df[df$Readmit_Day>0,]
 # Create an empty list to store replicated data frames
-replicated_dfs <- vector("list", nrow(df))
+replicated_dfs <- vector("list", nrow(df) )
+k=1
 for (i in 1:nrow(df)) {
   # Get the number of replications from "num_post_disc"
-  num_replications <- df$Readmit_Day[i]+1
+  num_replications <- df$Readmit_Day[i]
   # Create a data frame with the current row replicated by num_replications
   replicated_row <- df[i, -c(91:120)]
   replicated_row$curTemp=c(-100.01)
   replicated_row$curFupDay=c(-1)
   replicated_row$event=c(0)
+  replicated_row$ID=i
   replicated_row$weight_numpd <- 1/30
   replicated_rows <- replicate(num_replications, replicated_row, simplify = FALSE)
   # Add a new column for the follow-up measurement
@@ -95,12 +97,13 @@ for (i in 1:nrow(df)) {
   replicated_dfs <- c(replicated_dfs, replicated_rows)
 }
 print("List compiled")
-final0_df <- as.data.frame(data.table::rbindlist(replicated_dfs))
-final_df <- final0_df[,!(names(final0_df) %in% c("Composite_Readmit_Mort"))]
+final_df <- as.data.frame(data.table::rbindlist(replicated_dfs))
+#final_df <- final0_df[,!(names(final0_df) %in% c("Composite_Readmit_Mort"))]
+#remember to remove this second spot that the answer is being stored
 print("Dataframe converted")
 rm(replicated_rows)
 rm(replicated_dfs)
-rm(final0_df)
+
 ##Construct extra columns for converted dataframe, 3 basis functions for the lag days
 final_df$curFupDb0 <- 1*(final_df$curFupDay<2)
 final_df$curFupDb1 <- 1*(final_df$curFupDay>=2)

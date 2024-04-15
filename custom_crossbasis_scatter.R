@@ -1,4 +1,4 @@
-custom_crossbasis_scatter <- function (x, lag, varbreaks, group = NULL, pslags = NULL, dayweights = NULL) 
+custom_crossbasis_scatter <- function (x, lag, varbreaks, group = NULL, pslags = NULL, dayweights = NULL,densReturn=FALSE) 
 {
   #checkcrossbasis(argvar, arglag, list(...))
   #argvar <- list(fun="strata",breaks=varbreaks, intercept=TRUE)
@@ -28,7 +28,12 @@ custom_crossbasis_scatter <- function (x, lag, varbreaks, group = NULL, pslags =
   fines_b <- matrix(0,length(fines),length(varbreaks)+1) #reduce the dimension of the variable x to argvar dimension
   onelocsf <- findInterval(fines, varbreaks)
   for (i in seq(length(fines))){ fines_b[i,onelocsf[i]+1] <- 1}
-  norms_density = colSums(fines_b)*0.1
+  
+  if (densReturn){
+    norms_density = colSums(fines_b)*0.1 #density per 0.1 degrees
+  }else{
+    norms_density = matrix(1,length(varbreaks)+1) #count number of observations in each bin
+  }
   
   mat <- matrix(data=NA,nrow=dim[1],ncol=lag[2]+1)
   colnames(mat) <- seq(0,lag[2])
@@ -38,7 +43,7 @@ custom_crossbasis_scatter <- function (x, lag, varbreaks, group = NULL, pslags =
       st<-1L 
       for (gi in gs){
       en<- st+ gi -1 #last entry for each patient, st is the first
-      mat[st:en, 1:gi ] <- as.matrix(Lag(basisvar[st:en, v] *dayweights[st:en], seqlag(c(0, gi - 1)))) 
+      mat[st:en, 1:gi ] <- as.matrix(Lag(basisvar[st:en, v] , seqlag(c(0, gi - 1)))) *dayweights[st:en]
       #store each lag day in the past for each patient, with columns being these lag days.
       st<- en + 1L
       }

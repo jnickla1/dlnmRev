@@ -4,7 +4,6 @@ library("splines")
 library("glmtoolbox")
 library("dplyr")
 
-
 tempers <- read.csv("~/Documents/dlnmRevData/sampled_corner_data.csv",sep=',',header=TRUE)
 tempers$num_post_disc <- rowSums(!is.na(tempers)) - 2
 tempers$tmean <- rowMeans(tempers[1:30],na.rm=TRUE)

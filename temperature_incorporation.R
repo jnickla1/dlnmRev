@@ -13,14 +13,17 @@ df3$tmean <- rowMeans(df3[91:120],na.rm=TRUE)
 for (x in 91:120) {
   df3[,x] <- ifelse(is.na(df3[,x]), df3$tmean, df3[,x])
 }
+library("dlnm")
+library("splines")
 
 varper <- c(10,25,50,75,90)
 lag <- 29
 lagnk <- 4
-argvar <- list(fun="bs",degree=2,knots=quantile(df3[91:120], varper/100,na.rm=T))
-library("dlnm")
-library("splines")
-cb2 <- crossbasis(df3[91:120],lag=lag,argvar=argvar, arglag=list(knots=logknots(lag,lagnk)))
+vb <- quantile(df3[91:120], varper/100,na.rm=T)
+argvar0 <- list(fun="bs",degree=2,knots=vb)
+arglag0 <- list(knots=logknots(lag,lagnk))
+
+cb2 <- crossbasis(df3[91:120],lag=lag,argvar=argvar0, arglag=arglag0)
 ns2 <- onebasis(df3$DOW_Month, fun='ns',df=6)
 
 if(!exists("fit2")){
@@ -57,9 +60,110 @@ title("Seasonal Effect")
 
 ## Compute estimate of effect sizes with temperature on expanded model, dividing the logit values by day#+1
 
-if(!exists("cblogit")){
+if(!exists("cblogit_preds")){
   source("~/Documents/dlnmRev/fit_indep_days_since.R")
 }
 
+varperf <- c(10,20,30,50,70,80,90)
+vbf <- quantile(df3[91:120], varper/100,na.rm=T)
 
-## Re-so the glm(start = ...) one each post-op day and print out each iteration to see where changes / improvements are made
+source("~/Documents/dlnmRev/custom_crossbasis_scatter.R")
+environment(custom_crossbasis_scatter) <- asNamespace('dlnm')
+totals = custom_crossbasis_scatter(final_df$curTemp,lag=lag,varbreaks=vbf,
+                                   group=final_df$ID, pslags=(final_df$curFupDay+1),densReturn=TRUE)
+
+xminmax0 = c(min(final_df$curTemp),max(final_df$curTemp),0.1)
+#logknots(lag,lagnk)
+arglag2 <- list(fun="bs",degree=2,knots=c( 0,1,2,5,12), intercept=FALSE)
+source("~/Documents/dlnmRev/custom_crossbasis_gen.R")
+environment(custom_crossbasis_gen) <- asNamespace('dlnm')
+imprints = custom_crossbasis_gen(xminmax0,lag=lag, varbreaks = vbf, 
+                                 argvar=argvar0, arglag=arglag2)
+df_recomb_list <- data.frame(c(totals))
+lagdiml <- length(arglag2$knots)+2
+for (var in seq(dim(imprints)[1])){
+  v_here = (var-1) %/% (lagdiml*lagdiml)
+  l_here =((var-1) %% (lagdiml*lagdiml)) %/% lagdiml
+  d_here = (var-1) %% (lagdiml)
+  colname = paste0("v",v_here,".l",l_here,".d",d_here)
+  df_recomb_list[colname] <- c(imprints[var,,,])
+}
+
+print("Crossbasis formed")
+fitlm <- lm(c.totals. ~ ., data = df_recomb_list)
+print("Interpolation 1 fitted")
+#print(sum(is.na(fitlm$coefficients)))
+coefs0 <- fitlm$coefficients[2:length(fitlm$coefficients)]
+coefs0[is.na(coefs0)] <- 0
+
+fittedarr = array(rep(fitlm$coefficients[1],length(totals)), dim = dim(totals))
+for (var in seq(dim(imprints)[1])){
+  fittedarr = fittedarr + imprints[var,,,]*coefs0[var]
+}
+dev.new()
+library('plot.matrix')
+dev.new()
+plot(fittedarr[2,,],breaks=seq(90,120,2))
+dev.new()
+plot(totals[2,,],breaks=seq(90,120,2))
+
+
+#events_df = final_df[final_df$Composite_Readmit_Mort == 1, ]
+
+totals_counts = custom_crossbasis_scatter(final_df$curTemp,lag=lag,varbreaks=vbf,
+                                   group=final_df$ID, pslags=(final_df$curFupDay+1))
+
+totals_events_c = custom_crossbasis_scatter(final_df$curTemp,lag=lag,varbreaks=vbf,
+                  group=final_df$ID, pslags=(final_df$curFupDay+1), dayweights = final_df$event)
+
+totals_events = custom_crossbasis_scatter(final_df$curTemp,lag=lag,varbreaks=vbf,
+      group=final_df$ID, pslags=(final_df$curFupDay+1), dayweights = final_df$event,densReturn=TRUE)
+df_recomb_list$c.totals. = c(totals_events)
+fitlm2 <- lm(c.totals. ~ ., data = df_recomb_list)
+print("Interpolation 2 fitted")
+coefsE <- fitlm2$coefficients[2:length(fitlm2$coefficients)]
+coefsE[is.na(coefsE)] <- 0
+fittedE = array(rep(fitlm2$coefficients[1],length(totals_events)), dim = dim(totals_events))
+for (var in seq(dim(imprints)[1])){
+  fittedE = fittedE + imprints[var,,,]*coefsE[var]
+}
+dev.new()
+plot(fittedE[2,,],breaks=seq(0,8,1))
+dev.new()
+plot(totals_events[2,,],breaks=seq(0,8,1))
+
+library("boot")
+expect_pts0 = inv.logit(cblogit_preds$fit)
+r30ratio = sum(expect_pts0,na.rm=TRUE)/sum(final_df$event)
+expect_pts_high = inv.logit(cblogit_preds$fit+1.28*cblogit_preds$se.fit)/r30ratio
+#using Kelly skewness to estimate fit distribution
+expect_events_high =  custom_crossbasis_scatter(final_df$curTemp,lag=lag,varbreaks=vbf,
+                              group=final_df$ID, pslags=(final_df$curFupDay+1), dayweights = expect_pts_high)
+expect_pts_low = inv.logit(cblogit_preds$fit-1.28*cblogit_preds$se.fit)/r30ratio
+expect_events_low =  custom_crossbasis_scatter(final_df$curTemp,lag=lag,varbreaks=vbf,
+                              group=final_df$ID, pslags=(final_df$curFupDay+1),dayweights = expect_pts_low)
+expect_pts = inv.logit(cblogit_preds$fit)/r30ratio
+expect_events =  custom_crossbasis_scatter(final_df$curTemp,lag=lag,varbreaks=vbf,
+                                               group=final_df$ID, pslags=(final_df$curFupDay+1),dayweights = expect_pts)
+
+source("~/Documents/dlnmRev/prob_utils.R")
+temp_shifts_cent = array(rep(fitlm$coefficients[1],length(totals)), dim = dim(totals_counts))
+for(i in 1:dim(totals_counts)[1]) {
+  for(j in 1:dim(totals_counts)[2]) {
+    for(k in 1:dim(totals_counts)[3]) {
+      if(totals_counts_[i,j,k]>0){
+      percdataHere = c(expect_events[i,j,k]/totals_counts[i,j,k], expect_events_low[i,j,k]/totals_counts[i,j,k], 
+                       expect_events_high[i,j,k]/totals_counts[i,j,k])
+      temp_shifts_cent[i,j,k] <- tryCatch({
+        CmeasB_times_LNskewfit(percdataHere,1+totals_events_c[i,j,k],1+totals_counts[i,j,k]-totals_events_c[i,j,k])
+      } ,       error=function(e) {
+        message(paste(i,j,i,"failed to find intercept"))
+        print(e)
+      })
+    }}}}
+
+
+
+
+
+## Re-run the glm(start = ...) one each post-op day and print out each iteration to see where changes / improvements are made
