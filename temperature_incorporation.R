@@ -58,6 +58,10 @@ plot(np,ci.level=0.95,ylim=c(0.33,3),log="y",ylab="RR", xlab= "Month of Surgery"
 title("Seasonal Effect")
 #worse significance if we don't account for the seasonal effect
 
+
+
+
+
 ## Compute estimate of effect sizes with temperature on expanded model, dividing the logit values by day#+1
 
 if(!exists("cblogit_preds")){
@@ -147,23 +151,122 @@ expect_events =  custom_crossbasis_scatter(final_df$curTemp,lag=lag,varbreaks=vb
                                                group=final_df$ID, pslags=(final_df$curFupDay+1),dayweights = expect_pts)
 
 source("~/Documents/dlnmRev/prob_utils.R")
-temp_shifts_cent = array(rep(fitlm$coefficients[1],length(totals)), dim = dim(totals_counts))
+temp_shifts_cent = array(rep(0,length(totals)), dim = dim(totals_counts))
+temp_shifts_high = array(rep(0,length(totals)), dim = dim(totals_counts))
+temp_shifts_low = array(rep(0,length(totals)), dim = dim(totals_counts))
 for(i in 1:dim(totals_counts)[1]) {
   for(j in 1:dim(totals_counts)[2]) {
     for(k in 1:dim(totals_counts)[3]) {
-      if(totals_counts_[i,j,k]>0){
+      if(totals_counts[i,j,k]>0){
       percdataHere = c(expect_events[i,j,k]/totals_counts[i,j,k], expect_events_low[i,j,k]/totals_counts[i,j,k], 
                        expect_events_high[i,j,k]/totals_counts[i,j,k])
-      temp_shifts_cent[i,j,k] <- tryCatch({
-        CmeasB_times_LNskewfit(percdataHere,1+totals_events_c[i,j,k],1+totals_counts[i,j,k]-totals_events_c[i,j,k])
-      } ,       error=function(e) {
-        message(paste(i,j,i,"failed to find intercept"))
-        print(e)
-      })
+      temp_shifts_cent[i,j,k] <- try(CmeasB_times_LNskewfit(percdataHere,1+totals_events_c[i,j,k],1+totals_counts[i,j,k]-totals_events_c[i,j,k]) )
+      temp_shifts_high[i,j,k] <- try(CmeasB_times_LNskewfit(percdataHere,1+totals_events_c[i,j,k],1+totals_counts[i,j,k]-totals_events_c[i,j,k], P=0.975))
+      temp_shifts_low[i,j,k] <- try(CmeasB_times_LNskewfit(percdataHere,1+totals_events_c[i,j,k],1+totals_counts[i,j,k]-totals_events_c[i,j,k], P=0.025))
     }}}}
 
+for(j in 1:dim(totals_counts)[2]) {
+  temp_shifts_cent[,j,] = temp_shifts_cent[,j,] / j #one patient will cover j number of lag days, so rate is averaged over all experienced
+  temp_shifts_high[,j,] = temp_shifts_high[,j,] / j
+  temp_shifts_low[,j,] = temp_shifts_low[,j,] / j
+}
+
+#dev.new()
+#plot(temp_shifts_cent[2,,],breaks=seq(-0.2,0.2,0.1))
+df_recomb_list$c.totals. = c(temp_shifts_cent)
+shiftslm <- lm(c.totals. ~ ., data = df_recomb_list)
+print("Interpolation to shifts fitted")
+coefsS <- shiftslm$coefficients[2:length(shiftslm$coefficients)]
+coefsS[is.na(coefsS)] <- 0
+fittedS = array(rep(shiftslm$coefficients[1],length(totals_counts)), dim = dim(totals_counts))
+for (var in seq(dim(imprints)[1])){
+  fittedS = fittedS + imprints[var,,,]*coefsS[var]}
+
+df_recomb_list$c.totals. = c(temp_shifts_high)
+shiftslmhi <- lm(c.totals. ~ ., data = df_recomb_list)
+print("Interpolation to shifts high fitted")
+coefsShi <- shiftslmhi$coefficients[2:length(shiftslmhi$coefficients)]
+coefsShi[is.na(coefsShi)] <- 0
+fittedShi = array(rep(shiftslmhi$coefficients[1],length(totals_counts)), dim = dim(totals_counts))
+for (var in seq(dim(imprints)[1])){
+  fittedShi = fittedShi + imprints[var,,,]*coefsShi[var]}
 
 
+df_recomb_list$c.totals. = c(temp_shifts_low)
+shiftslmlo <- lm(c.totals. ~ ., data = df_recomb_list)
+print("Interpolation to shifts low fitted")
+coefsSlo <- shiftslmlo$coefficients[2:length(shiftslmlo$coefficients)]
+coefsSlo[is.na(coefsSlo)] <- 0
+fittedSlo = array(rep(shiftslmlo$coefficients[1],length(totals_counts)), dim = dim(totals_counts))
+for (var in seq(dim(imprints)[1])){
+  fittedSlo = fittedSlo + imprints[var,,,]*coefsSlo[var]}
 
+#dev.new()
+#plot(fittedS[2,,],breaks=seq(-0.2,0.2,0.1))
 
+temp_day_cent = array(rep(0,dim(totals_counts)[1]*dim(totals_counts)[2]), dim =dim(totals_counts)[1:2])
+temp_day_high = array(rep(0,dim(totals_counts)[1]*dim(totals_counts)[2]), dim =dim(totals_counts)[1:2])
+temp_day_low = array(rep(0,dim(totals_counts)[1]*dim(totals_counts)[2]), dim =dim(totals_counts)[1:2])
+
+for(j in 1:dim(totals_counts)[2]) {
+  temp_shifts_cent[,j,] = temp_shifts_cent[,j,] / j #one patient will cover j number of lag days, so rate is averaged over all experienced
+  temp_shifts_high[,j,] = temp_shifts_high[,j,] / j
+  temp_shifts_low[,j,] = temp_shifts_low[,j,] / j
+  for (i in 1:dim(totals_counts)[1]){
+  temp_day_cent[i,j] = sum(temp_shifts_cent[i,j,])
+  temp_day_high[i,j] = sum(temp_shifts_high[i,j,])
+  temp_day_low[i,j] = sum(temp_shifts_low[i,j,])
+  }
+}
+
+dev.new()
+plot(temp_day_cent,breaks=seq(-0.6,0.6,0.1))
+
+levels <- pretty(temp_day_cent, 20)
+col1 <- colorRampPalette(c("blue", "white"))
+col2 <- colorRampPalette(c("white", "red"))
+col <- c(col1(sum(levels < 0)), col2(sum(levels > 0)))
+varper2 <-c(5,(10+25)/2,(25+50)/2,(50+75)/2,(75+90)/2,95) #c(10,25,50,75,90)
+vbf2= quantile(df3[91:120], varper2/100,na.rm=T)
+(vbf-273.15) * 9/5 + 32
+filled.contour(x = vbf2, y =seq(1,30, 1), 
+               z = temp_day_cent, col = col, levels = levels)
+
+temp2_shifts_cent = array(rep(0,length(totals)/4), dim = c(dim(totals_counts)[1],dim(totals_counts)[2]/2,dim(totals_counts)[3]/2))
+temp2_shifts_high = array(rep(0,length(totals)),dim = c(dim(totals_counts)[1],dim(totals_counts)[2]/2,dim(totals_counts)[3]/2))
+temp2_shifts_low = array(rep(0,length(totals)), dim = c(dim(totals_counts)[1],dim(totals_counts)[2]/2,dim(totals_counts)[3]/2))
+temp2_shifts_ps = array(rep(0,length(totals)), dim = c(dim(totals_counts)[1],dim(totals_counts)[2]/2,dim(totals_counts)[3]/2))
+for(i in 1:dim(totals_counts)[1]) {
+  for(j in 1:(dim(totals_counts)[2]/2)) {
+    for(k in 1:(dim(totals_counts)[3]/2)) {
+      if(totals_counts[i,j*2-1,k*2-1]>0){
+      percdataHere = c(expect_events[i,j*2,k*2]+expect_events[i,j*2-1,k*2]+expect_events[i,j*2,k*2-1]+expect_events[i,j*2-1,k*2-1], 
+                       expect_events_low[i,j*2,k*2]+expect_events_low[i,j*2-1,k*2]+expect_events_low[i,j*2,k*2-1]+expect_events_low[i,j*2-1,k*2-1], 
+                       expect_events_high[i,j*2,k*2]+expect_events_high[i,j*2-1,k*2]+expect_events_high[i,j*2,k*2-1]+expect_events_high[i,j*2-1,k*2-1])
+      tcount = (totals_counts[i,j*2,k*2]+totals_counts[i,j*2-1,k*2]+totals_counts[i,j*2,k*2-1]+totals_counts[i,j*2-1,k*2-1])
+      percdataHere = percdataHere / tcount
+      alp=1+totals_events_c[i,j*2,k*2]+totals_events_c[i,j*2-1,k*2]+totals_events_c[i,j*2,k*2-1]+totals_events_c[i,j*2-1,k*2-1]
+      bet = 2 - alp + tcount
+      temp2_shifts_cent[i,j,k] <- try(CmeasB_times_LNskewfit(percdataHere,alp,bet) )
+      temp2_shifts_high[i,j,k] <- try(CmeasB_times_LNskewfit(percdataHere,alp,bet, P=0.975))
+      temp2_shifts_low[i,j,k] <- try(CmeasB_times_LNskewfit(percdataHere,alp,bet, P=0.025))
+      parms <- lognorm_params_kelly(percdataHere[1],percdataHere[2],percdataHere[3])
+      temp2_shifts_ps[i,j,k]<- try(PmeasB_times_LNskew(1,parms[1],parms[2],parms[3],alp,bet,P=0))
+    }}}}
+temp2_day_cent = array(rep(0,dim(totals_counts)[1]*dim(totals_counts)[2]/2), dim =c(dim(totals_counts)[1],dim(totals_counts)[2]))
+temp2_day_high = array(rep(0,dim(totals_counts)[1]*dim(totals_counts)[2]/2), dim =c(dim(totals_counts)[1],dim(totals_counts)[2]))
+temp2_day_low = array(rep(0,dim(totals_counts)[1]*dim(totals_counts)[2]/2), dim =c(dim(totals_counts)[1],dim(totals_counts)[2]))
+
+for(j in 1:dim(totals_counts)[2]/2) {
+  temp2_shifts_cent[,j,] = temp2_shifts_cent[,j,] / (2*j-.5) #one patient will cover j number of lag days, so rate is averaged over all experienced
+  temp2_shifts_high[,j,] = temp2_shifts_high[,j,] / (2*j-.5)
+  temp2_shifts_low[,j,] = temp2_shifts_low[,j,] / (2*j-.5)
+  for (i in 1:dim(totals_counts)[1]){
+    temp2_day_cent[i,j] = sum(temp2_shifts_cent[i,j,]) *2
+    temp2_day_high[i,j] = sum(temp2_shifts_high[i,j,]) *2
+    temp2_day_low[i,j] = sum(temp2_shifts_low[i,j,]) *2
+  }
+}
+temp2_shifts_ps[6,1:7,1:7]
+temp2_shifts_cent[6,1:7,1:7]
 ## Re-run the glm(start = ...) one each post-op day and print out each iteration to see where changes / improvements are made

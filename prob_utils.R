@@ -42,13 +42,13 @@ plsnorm <- function( x, eta, omega, alpha){
 
 PmeasB_times_LNskew <- function(exceeds,meanlg,sdlg,skew, alph, beta,  P){
   f <- function(y) dbeta(y, alph, beta)*(1- plsnorm(x = y*exceeds, eta = meanlg, omega = sdlg ,alpha=skew))
-  integ = integrate(f, 0,1)
+  integ = integrate(f, 0,1,rel.tol = 1e-8)
   return( integ$value - P)
 }
 
 CmeasB_times_LNskewfit <- function(percdata, alph, beta,  P=0.5){
   parms <- lognorm_params_kelly(percdata[1],percdata[2],percdata[3])
   unr <- uniroot(PmeasB_times_LNskew, c(0.0001,500), extendInt="downX",meanlg=parms[1],sdlg=parms[2],skew=parms[3], alph, beta,P)
-  return(log(unr$root))
+  return(-log(unr$root))
 }
 
