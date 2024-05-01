@@ -16,7 +16,7 @@ for (x in 91:120) {
 library("dlnm")
 library("splines")
 
-varper <- c(10,25,50,75,90)
+varper <- c(2,10,25,50,75,90,98)
 lag <- 29
 lagnk <- 4
 vb <- quantile(df3[91:120], varper/100,na.rm=T)
@@ -229,8 +229,7 @@ col <- c(col1(sum(levels < 0)), col2(sum(levels > 0)))
 varper2 <-c(5,(10+25)/2,(25+50)/2,(50+75)/2,(75+90)/2,95) #c(10,25,50,75,90)
 vbf2= quantile(df3[91:120], varper2/100,na.rm=T)
 (vbf-273.15) * 9/5 + 32
-filled.contour(x = vbf2, y =seq(1,30, 1), 
-               z = temp_day_cent, col = col, levels = levels)
+#filled.contour(x = vbf2, y =seq(1,30, 1),   z = temp_day_cent, col = col, levels = levels)
 
 temp2_shifts_cent = array(rep(0,length(totals)/4), dim = c(dim(totals_counts)[1],dim(totals_counts)[2]/2,dim(totals_counts)[3]/2))
 temp2_shifts_high = array(rep(0,length(totals)),dim = c(dim(totals_counts)[1],dim(totals_counts)[2]/2,dim(totals_counts)[3]/2))
@@ -267,6 +266,9 @@ for(j in 1:dim(totals_counts)[2]/2) {
     temp2_day_low[i,j] = sum(temp2_shifts_low[i,j,]) *2
   }
 }
-temp2_shifts_ps[6,1:7,1:7]
-temp2_shifts_cent[6,1:7,1:7]
+temp2_shifts_ps[8,1:7,1:7]
+temp2_shifts_cent[8,1:7,1:7]
+mmx=c(min(df3[91:120],na.rm=TRUE),max(df3[91:120],na.rm=TRUE))
+(mmx-273.15) * 9/5 + 32
+sum(rowSums((df3[91:120]>mmx[1]) * (df3[91:120]<vbf[1]),  na.rm=TRUE) >0 , na.rm=TRUE)
 ## Re-run the glm(start = ...) one each post-op day and print out each iteration to see where changes / improvements are made
