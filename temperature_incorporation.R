@@ -20,7 +20,7 @@ varper <- c(2,10,25,50,75,90,98)
 lag <- 29
 lagnk <- 4
 vb <- quantile(df3[91:120], varper/100,na.rm=T)
-argvar0 <- list(fun="bs",degree=2,knots=vb)
+argvar0 <- list(fun="bs",degree=2,knots=array(vb))
 arglag0 <- list(knots=logknots(lag,lagnk))
 
 cb2 <- crossbasis(df3[91:120],lag=lag,argvar=argvar0, arglag=arglag0)
@@ -32,7 +32,13 @@ if(!exists("fit2")){
 
 model00 <- glm(paste("Composite_Readmit_Mort",fit2$final,"+ DOW_Discharge + ns2"), data = df3, family = "binomial",na.action=na.exclude)
 summary(model00)
+np <- crosspred(ns2,model00)
+plot(np,ci.level=0.95,ylim=c(0.33,3),log="y",ylab="RR", xlab= "Month of Surgery")
+title("Seasonal Effect in 8-pred + DOW + post-Disch Day Model")
 #season has no effect without considering temperature
+
+if(FALSE){
+  ###ignore this code - bad creation of cb2, does not work
 modelcomb <- glm(paste("Composite_Readmit_Mort",fit2$final,"+ DOW_Discharge + cb2 + ns2"), data = df3, family = "binomial",na.action=na.exclude)
 cp2 <- crosspred(cb2, modelcomb, cen=mean(df3$tmean,na.rm=T),from=270, to=300, lag=c(0,20), by=1)
 dev.new()
@@ -57,8 +63,7 @@ np <- crosspred(ns2,modelcomb)
 plot(np,ci.level=0.95,ylim=c(0.33,3),log="y",ylab="RR", xlab= "Month of Surgery")
 title("Seasonal Effect")
 #worse significance if we don't account for the seasonal effect
-
-
+}
 
 
 
@@ -77,64 +82,19 @@ totals = custom_crossbasis_scatter(final_df$curTemp,lag=lag,varbreaks=vbf,
                                    group=final_df$ID, pslags=(final_df$curFupDay+1),densReturn=TRUE)
 
 xminmax0 = c(min(final_df$curTemp),max(final_df$curTemp),0.1)
-#logknots(lag,lagnk)
-arglag2 <- list(fun="bs",degree=2,knots=c( 0,1,2,5,12), intercept=FALSE)
-source("~/Documents/dlnmRev/custom_crossbasis_gen.R")
-environment(custom_crossbasis_gen) <- asNamespace('dlnm')
-imprints = custom_crossbasis_gen(xminmax0,lag=lag, varbreaks = vbf, 
-                                 argvar=argvar0, arglag=arglag2)
-df_recomb_list <- data.frame(c(totals))
-lagdiml <- length(arglag2$knots)+2
-for (var in seq(dim(imprints)[1])){
-  v_here = (var-1) %/% (lagdiml*lagdiml)
-  l_here =((var-1) %% (lagdiml*lagdiml)) %/% lagdiml
-  d_here = (var-1) %% (lagdiml)
-  colname = paste0("v",v_here,".l",l_here,".d",d_here)
-  df_recomb_list[colname] <- c(imprints[var,,,])
-}
 
-print("Crossbasis formed")
-fitlm <- lm(c.totals. ~ ., data = df_recomb_list)
-print("Interpolation 1 fitted")
-#print(sum(is.na(fitlm$coefficients)))
-coefs0 <- fitlm$coefficients[2:length(fitlm$coefficients)]
-coefs0[is.na(coefs0)] <- 0
 
-fittedarr = array(rep(fitlm$coefficients[1],length(totals)), dim = dim(totals))
-for (var in seq(dim(imprints)[1])){
-  fittedarr = fittedarr + imprints[var,,,]*coefs0[var]
-}
-dev.new()
 library('plot.matrix')
-dev.new()
-plot(fittedarr[2,,],breaks=seq(90,120,2))
-dev.new()
-plot(totals[2,,],breaks=seq(90,120,2))
-
-
-#events_df = final_df[final_df$Composite_Readmit_Mort == 1, ]
 
 totals_counts = custom_crossbasis_scatter(final_df$curTemp,lag=lag,varbreaks=vbf,
-                                   group=final_df$ID, pslags=(final_df$curFupDay+1))
+                                          group=final_df$ID, pslags=(final_df$curFupDay+1))
 
 totals_events_c = custom_crossbasis_scatter(final_df$curTemp,lag=lag,varbreaks=vbf,
-                  group=final_df$ID, pslags=(final_df$curFupDay+1), dayweights = final_df$event)
+                                            group=final_df$ID, pslags=(final_df$curFupDay+1), dayweights = final_df$event)
 
 totals_events = custom_crossbasis_scatter(final_df$curTemp,lag=lag,varbreaks=vbf,
-      group=final_df$ID, pslags=(final_df$curFupDay+1), dayweights = final_df$event,densReturn=TRUE)
-df_recomb_list$c.totals. = c(totals_events)
-fitlm2 <- lm(c.totals. ~ ., data = df_recomb_list)
-print("Interpolation 2 fitted")
-coefsE <- fitlm2$coefficients[2:length(fitlm2$coefficients)]
-coefsE[is.na(coefsE)] <- 0
-fittedE = array(rep(fitlm2$coefficients[1],length(totals_events)), dim = dim(totals_events))
-for (var in seq(dim(imprints)[1])){
-  fittedE = fittedE + imprints[var,,,]*coefsE[var]
-}
-dev.new()
-plot(fittedE[2,,],breaks=seq(0,8,1))
-dev.new()
-plot(totals_events[2,,],breaks=seq(0,8,1))
+                                          group=final_df$ID, pslags=(final_df$curFupDay+1), dayweights = final_df$event,densReturn=TRUE)
+
 
 library("boot")
 expect_pts0 = inv.logit(cblogit_preds$fit)
@@ -171,35 +131,7 @@ for(j in 1:dim(totals_counts)[2]) {
   temp_shifts_low[,j,] = temp_shifts_low[,j,] / j
 }
 
-#dev.new()
-#plot(temp_shifts_cent[2,,],breaks=seq(-0.2,0.2,0.1))
-df_recomb_list$c.totals. = c(temp_shifts_cent)
-shiftslm <- lm(c.totals. ~ ., data = df_recomb_list)
-print("Interpolation to shifts fitted")
-coefsS <- shiftslm$coefficients[2:length(shiftslm$coefficients)]
-coefsS[is.na(coefsS)] <- 0
-fittedS = array(rep(shiftslm$coefficients[1],length(totals_counts)), dim = dim(totals_counts))
-for (var in seq(dim(imprints)[1])){
-  fittedS = fittedS + imprints[var,,,]*coefsS[var]}
 
-df_recomb_list$c.totals. = c(temp_shifts_high)
-shiftslmhi <- lm(c.totals. ~ ., data = df_recomb_list)
-print("Interpolation to shifts high fitted")
-coefsShi <- shiftslmhi$coefficients[2:length(shiftslmhi$coefficients)]
-coefsShi[is.na(coefsShi)] <- 0
-fittedShi = array(rep(shiftslmhi$coefficients[1],length(totals_counts)), dim = dim(totals_counts))
-for (var in seq(dim(imprints)[1])){
-  fittedShi = fittedShi + imprints[var,,,]*coefsShi[var]}
-
-
-df_recomb_list$c.totals. = c(temp_shifts_low)
-shiftslmlo <- lm(c.totals. ~ ., data = df_recomb_list)
-print("Interpolation to shifts low fitted")
-coefsSlo <- shiftslmlo$coefficients[2:length(shiftslmlo$coefficients)]
-coefsSlo[is.na(coefsSlo)] <- 0
-fittedSlo = array(rep(shiftslmlo$coefficients[1],length(totals_counts)), dim = dim(totals_counts))
-for (var in seq(dim(imprints)[1])){
-  fittedSlo = fittedSlo + imprints[var,,,]*coefsSlo[var]}
 
 #dev.new()
 #plot(fittedS[2,,],breaks=seq(-0.2,0.2,0.1))
@@ -219,8 +151,8 @@ for(j in 1:dim(totals_counts)[2]) {
   }
 }
 
-dev.new()
-plot(temp_day_cent,breaks=seq(-0.6,0.6,0.1))
+#dev.new()
+#plot(temp_day_cent,breaks=seq(-0.6,0.6,0.1))
 
 levels <- pretty(temp_day_cent, 20)
 col1 <- colorRampPalette(c("blue", "white"))
@@ -271,4 +203,3 @@ temp2_shifts_cent[8,1:7,1:7]
 mmx=c(min(df3[91:120],na.rm=TRUE),max(df3[91:120],na.rm=TRUE))
 (mmx-273.15) * 9/5 + 32
 sum(rowSums((df3[91:120]>mmx[1]) * (df3[91:120]<vbf[1]),  na.rm=TRUE) >0 , na.rm=TRUE)
-## Re-run the glm(start = ...) one each post-op day and print out each iteration to see where changes / improvements are made
