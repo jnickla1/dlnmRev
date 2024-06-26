@@ -110,18 +110,18 @@ for (var in seq(dim(imprints)[1])){
 source("~/Documents/dlnmRev/custom_crossbasis_point.R")
 environment(custom_crossbasis_point) <- asNamespace('dlnm')
 
-coeffs_basis <- shiftslm$coefficients[2:442]
+coeffs_basis <- shiftslm$coefficients[-1]
 coeffs_basis[is.na(coeffs_basis)] <- 0
 len_to_calc=7
-all_weights = custom_crossbasis_point(rep(298,7),c(1,2,3,4,5,6,7), c(1,2,3,4,5,6,7), argvar=argvar0, arglag=arglag2)
+all_weights = custom_crossbasis_point(rep(298,7),c(1,2,3,4,5,6,7), c(1,2,3,4,5,6,7), xminmax0,lag=lag, argvar=argvar0, arglag=arglag2)
 point_values = array(rep(shiftslmlo$coefficients[1],len_to_calc)) + rowSums(matrix(rep(coeffs_basis, times=len_to_calc), nrow=len_to_calc, byrow=TRUE) * all_weights)
 
 point_values
+diag(fittedS[7,2:8,2:8])
+#par(mar=c(5, 4, 4, 4))
+#plot(temp2_shifts_cent[8,,])
+#plot(fittedS[8,,])
 
-par(mar=c(5, 4, 4, 4))
-plot(temp2_shifts_cent[8,,])
-plot(fittedS[8,,])
-diag(fittedS[8,,])
 
 ##PLOTTING: slices
 #col 1 - temperature on discharge day 0

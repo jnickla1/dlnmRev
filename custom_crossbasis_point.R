@@ -1,4 +1,4 @@
-custom_crossbasis_point <- function (varpoints,lagpoints,daypoints, argvar = list(), arglag = list()) 
+custom_crossbasis_point <- function (varpoints,lagpoints,daypoints,xminmax, lag, argvar = list(), arglag = list()) 
 { #generate a 1d basis array, where the first dimension is the identity of each basis function
   #checkcrossbasis(argvar, arglag, list(...))
   
@@ -13,9 +13,12 @@ custom_crossbasis_point <- function (varpoints,lagpoints,daypoints, argvar = lis
   else
   stop(errormes)
 
-  basislag2 <- do.call("onebasis", modifyList(arglag, list(x = lagpoints)))
-  basisday2 <- do.call("onebasis", modifyList(arglag, list(x = daypoints)))
-  basisvar2 <- do.call("onebasis", modifyList(argvar, list(x = varpoints)))
+  basislag2a <- do.call("onebasis", modifyList(arglag, list(x = c(0,lag,lagpoints))))
+  basisday2a <- do.call("onebasis", modifyList(arglag, list(x = c(0,lag,daypoints))))
+  basisvar2a <- do.call("onebasis", modifyList(argvar, list(x = c(xminmax[1:2],varpoints))))
+  basislag2 <- basislag2a[c(-1,-2),]
+  basisday2 <- basisday2a[c(-1,-2),]
+  basisvar2 <- basisvar2a[c(-1,-2),]
   npoints = length(varpoints)
   nbasis =  dim(basisvar2)[2]*dim(basislag2)[2]*dim(basislag2)[2]
   crossbasisreturnM <- array(rep(0, nbasis*npoints), c(npoints,nbasis))

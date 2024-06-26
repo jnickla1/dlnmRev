@@ -3,7 +3,7 @@ custom_crossbasis_gen <- function (xminmax, lag,varbreaks, argvar = list(), argl
   #checkcrossbasis(argvar, arglag, list(...))
   
   #argvar0 <- list(fun="strata",breaks=varbreaks, intercept=TRUE) # the groups of counts in the individual x's along var
-  x=seq(xminmax[1],xminmax[2],xminmax[3])
+  x=seq(xminmax[1],xminmax[2]+xminmax[3],xminmax[3])
   
   lag <- if (missing(lag)) 
     c(0, NCOL(x) - 1)
