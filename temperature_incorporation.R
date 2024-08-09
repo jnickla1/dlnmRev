@@ -188,16 +188,16 @@ temp2_day_cent = array(rep(0,dim(totals_counts)[1]*dim(totals_counts)[2]/2), dim
 temp2_day_high = array(rep(0,dim(totals_counts)[1]*dim(totals_counts)[2]/2), dim =c(dim(totals_counts)[1],dim(totals_counts)[2]))
 temp2_day_low = array(rep(0,dim(totals_counts)[1]*dim(totals_counts)[2]/2), dim =c(dim(totals_counts)[1],dim(totals_counts)[2]))
 
-for(j in 1:dim(totals_counts)[2]/2) {
-  temp2_shifts_cent[,j,] = temp2_shifts_cent[,j,] / (2*j-.5) #one patient will cover j number of lag days, so rate is averaged over all experienced
-  temp2_shifts_high[,j,] = temp2_shifts_high[,j,] / (2*j-.5)
-  temp2_shifts_low[,j,] = temp2_shifts_low[,j,] / (2*j-.5)
-  for (i in 1:dim(totals_counts)[1]){
-    temp2_day_cent[i,j] = sum(temp2_shifts_cent[i,j,]) *2
-    temp2_day_high[i,j] = sum(temp2_shifts_high[i,j,]) *2
-    temp2_day_low[i,j] = sum(temp2_shifts_low[i,j,]) *2
-  }
-}
+# for(j in 1:dim(totals_counts)[2]/2) { #Rescale these becasue each is in a different sized sum?
+#   temp2_shifts_cent[,j,] = temp2_shifts_cent[,j,] / (2*j-.5) #one patient will cover j number of lag days, so rate is averaged over all experienced
+#   temp2_shifts_high[,j,] = temp2_shifts_high[,j,] / (2*j-.5)
+#   temp2_shifts_low[,j,] = temp2_shifts_low[,j,] / (2*j-.5)
+#   for (i in 1:dim(totals_counts)[1]){
+#     temp2_day_cent[i,j] = sum(temp2_shifts_cent[i,j,]) *2
+#     temp2_day_high[i,j] = sum(temp2_shifts_high[i,j,]) *2
+#     temp2_day_low[i,j] = sum(temp2_shifts_low[i,j,]) *2
+#   }
+# }
 temp2_shifts_ps[8,1:7,1:7]
 temp2_shifts_cent[8,1:7,1:7]
 mmx=c(min(df3[91:120],na.rm=TRUE),max(df3[91:120],na.rm=TRUE))
