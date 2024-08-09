@@ -113,14 +113,14 @@ for (var in seq(dim(imprints)[1])){
 source("~/Documents/dlnmRev/custom_crossbasis_point.R")
 environment(custom_crossbasis_point) <- asNamespace('dlnm')
 
-coeffs_basis <- shiftslm$coefficients[-1]
-coeffs_basis[is.na(coeffs_basis)] <- 0
-len_to_calc=7
-all_weights = custom_crossbasis_point(rep(298,7),c(1,2,3,4,5,6,7), c(1,2,3,4,5,6,7), xminmax0,lag=lag, argvar=argvar0, arglag=arglag2)
-point_values = array(rep(shiftslmlo$coefficients[1],len_to_calc)) + rowSums(matrix(rep(coeffs_basis, times=len_to_calc), nrow=len_to_calc, byrow=TRUE) * all_weights)
-
-point_values
-diag(fittedS[7,2:8,2:8])
+# coeffs_basis <- shiftslm$coefficients[-1]
+# coeffs_basis[is.na(coeffs_basis)] <- 0
+# len_to_calc=7
+# all_weights = custom_crossbasis_point(rep(298,7),c(1,2,3,4,5,6,7), c(1,2,3,4,5,6,7), xminmax0,lag=lag, argvar=argvar0, arglag=arglag2)
+# point_values = array(rep(shiftslmlo$coefficients[1],len_to_calc)) + rowSums(matrix(rep(coeffs_basis, times=len_to_calc), nrow=len_to_calc, byrow=TRUE) * all_weights)
+# 
+# point_values
+# diag(fittedS[7,2:8,2:8])
 
 #plot(temp2_shifts_cent[8,,])
 #plot(fittedS[8,,])
@@ -131,19 +131,19 @@ diag(fittedS[7,2:8,2:8])
 #col 2 - temperature on discharge day +1
 # y axis: lag since = current days since discharge
 tempx=seq(xminmax0[1],xminmax0[2]+0.2,0.2)
-crmat <- matrix(, nrow = length(tempx), ncol =lag+1 )
+crmatf <- matrix(, nrow = length(tempx), ncol =lag+1 )
 for (day in seq(0,lag)){
   all_weights_day = custom_crossbasis_point(tempx,rep(0,length(tempx)), rep(day,length(tempx)), xminmax0,lag=lag, argvar=argvar0, arglag=arglag2)
   len_to_calcD=dim(all_weights_day)[1]
-  point_values = array(rep(shiftslmlo$coefficients[1],len_to_calcD)) + 
+  point_values = array(rep(shiftslm$coefficients[1],len_to_calcD)) + 
     rowSums(matrix(rep(coeffs_basis, times=len_to_calcD), nrow=len_to_calcD, byrow=TRUE) * all_weights_day)
-  crmat[,day+1]=point_values
+  crmatf[,day+1]=point_values
 }
 #par(mar=c(5, 4, 4, 4))
 #plot(crmat)
 
 noeff=0
-levels <- pretty(crmat[,c(-1,-2)], 20)
+levels <- pretty(temp2_shifts_cent, 20)
 col1 <- colorRampPalette(c("blue", "white"))
 col2 <- colorRampPalette(c("white", "red"))
 maxlevels <- max((sum(levels < noeff)),(sum(levels > noeff)))
@@ -151,9 +151,21 @@ minlevels <- min((sum(levels < noeff)),(sum(levels > noeff)))
 col <- c(col1(maxlevels)[(maxlevels-minlevels):maxlevels], col2(maxlevels))
 dev.new()
 filled.contour(x = tempx -273.15, y = seq(2, lag), 
-               z = crmat[,c(-1,-2)], col = col, levels = levels, 
+               z = crmatf[,c(-1,-2)], col = col, levels = levels, 
                plot.title = title(main = "Smoothed Binned Effect (logit) \n of Today's Temperature (Lag=0d)",
                                   xlab = "Temperature °C", ylab = "Days post-Discharge"))
+
+levels <- pretty(temp2_shifts_cent[,2:7,2:7], 20) 
+col1 <- colorRampPalette(c("blue", "white"))
+col2 <- colorRampPalette(c("white", "red"))
+maxlevels <- max((sum(levels < noeff)),(sum(levels > noeff)))
+minlevels <- min((sum(levels < noeff)),(sum(levels > noeff)))
+if((sum(levels > noeff)>=(sum(levels < noeff))){
+col <- c(col1(maxlevels)[(maxlevels-minlevels):maxlevels], col2(maxlevels))
+}
+else{
+col <- c(col1(maxlevels), col2(maxlevels)[(maxlevels-minlevels):maxlevels])
+}
 
 overlay_points <- function(x, y, top_value, bottom_value, xspacing, yspacing) {
   for (i in seq(1, length(x), by = xspacing)) {
@@ -231,15 +243,15 @@ crmat <- fill_matrix_stepwise(temp2_shifts_0s, array(vbf), tempx, (seq(2.5, lag+
 #                plot.title = title(main = "LOW Effect (logit) \n of Today's Temperature (Lag=0d)",
 #                                   xlab = "Temperature °C", ylab = "Days post-Discharge"))
 # 
+# dev.new()
+# filled.contour(x = tempx -273.15, y = seq(0, lag,by=1/ldiv), ylim=c(3,9.5),
+#                z = (hrmat - lrmat),
+#                plot.title = title(main = "DIFF Effect (logit) \n of Today's Temperature (Lag=0d)",
+#                                   xlab = "Temperature °C", ylab = "Days post-Discharge"))
 dev.new()
-filled.contour(x = tempx -273.15, y = seq(0, lag,by=1/ldiv), ylim=c(3,9.5),
-               z = (hrmat - lrmat),
-               plot.title = title(main = "DIFF Effect (logit) \n of Today's Temperature (Lag=0d)",
-                                  xlab = "Temperature °C", ylab = "Days post-Discharge"))
-dev.new()
-filled.contour(x = tempx -273.15, y = seq(0, lag,by=1/ldiv), ylim=c(3,9.5),
+filled.contour(x = tempx -273.15, y = seq(1, lag+1,by=1/ldiv), ylim=c(3,9.5),
                z = crmat,col = col, levels = levels,
-               plot.title = title(main = "Center Effect (logit) \n of Today's Temperature (Lag=0d)",
+               plot.title = title(main = "Center Effect (logit) \n of Today's Temperature (Lag=0-1d)",
                                   xlab = "Temperature °C", ylab = "Days post-Discharge of Readmission"),
                plot.axes = { axis(1); axis(2); box(); overlay_points(x = tempx -273.15, y = seq(1, lag+1,by=1/ldiv), 
                                                                                   hrmat,lrmat, 5,1)})
@@ -250,9 +262,9 @@ lrmatd0 <- fill_matrix_stepwise(temp2_shifts_low[,,1], array(vbf), tempx, (seq(2
 crmatd0 <- fill_matrix_stepwise(temp2_shifts_cent[,,1], array(vbf), tempx, (seq(2.5, lag+1,by=2)), seq(1, lag+1,by=1/ldiv) )
 
 dev.new()
-filled.contour(x = tempx -273.15, y = seq(0, lag,by=1/ldiv), ylim=c(3,9.5),
+filled.contour(x = tempx -273.15, y = seq(1, lag+1,by=1/ldiv), ylim=c(3,9.5),
                z = crmatd0,col = col, levels = levels,
-               plot.title = title(main = "Center Lagged Effect (logit) \n of Discharge Day Temperature (Discharge=0d)",
+               plot.title = title(main = "Center Lagged Effect (logit) \n of Discharge Day Temperature (Disch.=1-2d)",
                                   xlab = "Temperature °C", ylab = "Days post-Discharge of Readmission"),
                plot.axes = { axis(1); axis(2); box(); overlay_points(x = tempx -273.15, y = seq(1, lag+1,by=1/ldiv), 
                                                                      hrmatd0,lrmatd0, 5,1)})

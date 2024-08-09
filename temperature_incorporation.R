@@ -163,7 +163,7 @@ vbf2= quantile(df3[91:120], varper2/100,na.rm=T)
 (vbf-273.15) * 9/5 + 32
 #filled.contour(x = vbf2, y =seq(1,30, 1),   z = temp_day_cent, col = col, levels = levels)
 
-temp2_shifts_cent = array(rep(0,length(totals)/4), dim = c(dim(totals_counts)[1],dim(totals_counts)[2]/2,dim(totals_counts)[3]/2))
+temp2_shifts_cent = array(rep(0,length(totals)), dim = c(dim(totals_counts)[1],dim(totals_counts)[2]/2,dim(totals_counts)[3]/2))
 temp2_shifts_high = array(rep(0,length(totals)),dim = c(dim(totals_counts)[1],dim(totals_counts)[2]/2,dim(totals_counts)[3]/2))
 temp2_shifts_low = array(rep(0,length(totals)), dim = c(dim(totals_counts)[1],dim(totals_counts)[2]/2,dim(totals_counts)[3]/2))
 temp2_shifts_ps = array(rep(0,length(totals)), dim = c(dim(totals_counts)[1],dim(totals_counts)[2]/2,dim(totals_counts)[3]/2))
@@ -179,8 +179,9 @@ for(i in 1:dim(totals_counts)[1]) {
       alp=1+totals_events_c[i,j*2,k*2]+totals_events_c[i,j*2-1,k*2]+totals_events_c[i,j*2,k*2-1]+totals_events_c[i,j*2-1,k*2-1]
       bet = 2 - alp + tcount
       temp2_shifts_cent[i,j,k] <- try(CmeasB_times_LNskewfit(percdataHere,alp,bet) )
-      temp2_shifts_high[i,j,k] <- try(CmeasB_times_LNskewfit(percdataHere,alp,bet, P=0.975))
-      temp2_shifts_low[i,j,k] <- try(CmeasB_times_LNskewfit(percdataHere,alp,bet, P=0.025))
+      temp2_shifts_high[i,j,k] <- try(CmeasB_times_LNskewfit(percdataHere,alp,bet, P=0.95))
+      temp2_shifts_low[i,j,k] <- try(CmeasB_times_LNskewfit(percdataHere,alp,bet, P=0.05))
+      #temp2_shifts_low[8,15,4 ] integral diverges at 0.025
       parms <- lognorm_params_kelly(percdataHere[1],percdataHere[2],percdataHere[3])
       temp2_shifts_ps[i,j,k]<- try(PmeasB_times_LNskew(1,parms[1],parms[2],parms[3],alp,bet,P=0))
     }}}}
@@ -188,7 +189,7 @@ temp2_day_cent = array(rep(0,dim(totals_counts)[1]*dim(totals_counts)[2]/2), dim
 temp2_day_high = array(rep(0,dim(totals_counts)[1]*dim(totals_counts)[2]/2), dim =c(dim(totals_counts)[1],dim(totals_counts)[2]))
 temp2_day_low = array(rep(0,dim(totals_counts)[1]*dim(totals_counts)[2]/2), dim =c(dim(totals_counts)[1],dim(totals_counts)[2]))
 
-# for(j in 1:dim(totals_counts)[2]/2) { #Rescale these becasue each is in a different sized sum?
+# for(j in 1:(dim(totals_counts)[2]/2)) { #Rescale these because each is in a different sized sum?
 #   temp2_shifts_cent[,j,] = temp2_shifts_cent[,j,] / (2*j-.5) #one patient will cover j number of lag days, so rate is averaged over all experienced
 #   temp2_shifts_high[,j,] = temp2_shifts_high[,j,] / (2*j-.5)
 #   temp2_shifts_low[,j,] = temp2_shifts_low[,j,] / (2*j-.5)
