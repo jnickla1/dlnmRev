@@ -3,7 +3,7 @@ library("readxl")
 my_data <- read.csv("~/Documents/dlnmRevData/PostCriteria_withTempPoll_DEIDENTIFIED3ab.csv",sep=',',header=TRUE)
 df <- my_data[ -c(1,144,147) ] #remove first ID col
 #3-6 is blood prods
-delcols <-c(3:6, 20, 60, 89,  98:127, 138:139) #,18,40,42,47,89, 98:127,138:139) #remove temperature initially
+delcols <-c(3:6, 8, 20, 60, 89,93:97,  98:127, 138:139) #,18,40,42,47,89, 98:127,138:139) #remove temperature initially
 fcols <-c(1, 9:12,14,17:20,22:24,28,30:31,33:69,71:73,78,80:81,83:86,89:92,132:144)
 df[fcols] <- lapply(df[fcols], factor)
 df <- df[ -delcols ]
@@ -20,7 +20,7 @@ fit1 <- stepCriterion(mylogit, criterion="bic")
 #4 covariates
 fit3 <- stepCriterion(mylogit, criterion="aic")
 #4 covariates, disagree on Valve, only RF-Last Hematocrit is non-categorical
-if (1 == 0){ #sys.nframe() == 0){
+if (0 == 0){ #sys.nframe() == 0){
 
 model1 <- glm(paste("Composite_Readmit_Mort",fit1$final), data = df0, family = "binomial",na.action=na.exclude)
 summary(model1)
@@ -65,10 +65,10 @@ text(.55, .3, paste("Patients:",length(test_roc1$controls)+length(test_roc1$case
 #print(test_roc2)
 test_prob2 = predict(model2, type = "response")
 test_roc2 = roc(df0$Composite_Readmit_Mort ~ test_prob2, plot = TRUE, print.auc = FALSE,col='blue',add=TRUE)
-text(.15, .8, paste(model2$rank-1,"-predictor model",sep=""),col='blue')
-text(.15, .75, paste("AUC:",round(test_roc2$auc,4)),col='blue')
-text(.15, .7, paste("Events:",length(test_roc2$cases)),col='blue')
-text(.15, .65, paste("Patients:",length(test_roc2$controls)+length(test_roc2$cases)),col='blue')
+text(.15, .75, paste(model2$rank-1,"-predictor model (STEP 1)",sep=""),col='blue')
+text(.15, .7, paste("AUC:",round(test_roc2$auc,4)),col='blue')
+text(.15, .65, paste("Events:",length(test_roc2$cases)),col='blue')
+text(.15, .6, paste("Patients:",length(test_roc2$controls)+length(test_roc2$cases)),col='blue')
 #print(test_roc1)
 
 test_prob3 = predict(model3, type = "response")
@@ -122,12 +122,14 @@ arvf$ID <- seq.int(nrow(arvf))
 alterc=c(2:9,12:13,16:17)
 arvf['RF.Last.Hematocrit',alterc] = arvf['RF.Last.Hematocrit',alterc] *15
 arvf['RF.Last.Hematocrit','Row.names'] ="Last Hematocrit +15"
+arvf['Lowest.Hematocrit',alterc] = arvf['Lowest.Hematocrit',alterc] *15
+arvf['Lowest.Hematocrit','Row.names'] ="Lowest Hematocrit +15"
 
 arvf['Total.ICU.Hours',alterc] = arvf['Total.ICU.Hours',alterc] *400
 arvf['Total.ICU.Hours','Row.names'] ="Total.ICU.Hours +400"
 
-arvf['NO2_Post_Means',alterc] = arvf['NO2_Post_Means',alterc] *35
-arvf['NO2_Post_Means','Row.names'] ="NO2_Post_Means +35"
+#arvf['NO2_Post_Means',alterc] = arvf['NO2_Post_Means',alterc] *35
+#arvf['NO2_Post_Means','Row.names'] ="NO2_Post_Means +35"
 arvf['BMI',alterc] = arvf['BMI',alterc] *30
 arvf['BMI','Row.names'] ="BMI +30"
 
@@ -140,7 +142,7 @@ labelloc = match("(Intercept)",rownames(arvf))
 sp1 <- ggplot() + geom_point(data=arvf, aes(x=v2, y=factor(ID)),color="blue")+geom_errorbar(data=arvf,aes(xmin = lower2, xmax = upper2, y=factor(ID)),color="blue",width=0.2) +
      geom_point(data=arvf, aes(x=v3, y=ID+0.2),color="black")+geom_errorbar(data=arvf,aes(xmin = lower3, xmax = upper3, y=ID+0.2),color="black",width=0.2) +
      geom_point(data=arvf, aes(x=v1, y=ID-0.2),color="red")+geom_errorbar(data=arvf,aes(xmin = lower1, xmax = upper1, y=ID-0.2),color="red",width=0.2)+
-     annotate("text",x=4, y=labelloc,label=paste(model2$rank-1,"-predictor model",sep=""),col='blue')+
+     annotate("text",x=4, y=labelloc,label=paste(model2$rank-1,"-predictor model (STEP 1)",sep=""),col='blue')+
     annotate("text",x=4, y=labelloc+.4,label=paste(model3$rank-1,"-predictor (",model2$rank+5," shown)",sep=""),col='black')+
     annotate("text",x=4, y=labelloc-.4,label=paste(model1$rank-1,"-predictor model",sep=""),col='red')
 print(sp1+ scale_y_discrete(breaks=arvf$ID, labels=arvf$Row.names)+xlab("Logit Score Risk") + ylab("") +geom_vline(xintercept=0,linetype=3))

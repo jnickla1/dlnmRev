@@ -1,5 +1,5 @@
 library("readxl")
-my_data <- read.csv("~/Documents/dlnmRevData/PostCriteria_withTempPoll_DEIDENTIFIED3a.csv",sep=',',header=TRUE)
+my_data <- read.csv("~/Documents/dlnmRevData/PostCriteria_withTempPoll_DEIDENTIFIED3ab.csv",sep=',',header=TRUE)
 
 df1 <- my_data[,c("Readmit_Day","Composite_Readmit_Mort","DOW_Discharge")]
 
@@ -150,12 +150,14 @@ polygon(c(0:29,rev(0:29)),c(ncbfit[,"lwr"],rev(ncbfit[,"upr"])),col=rgb(1, 0, 0,
 
 text(4, -7.8, "Combined (no temp.) 2.5-97.5% CI",col=rgb(1, 0, 0,0.4), pos=4)
 text(4, -7.4, "Combined (no temp.) Fit: ",col="red", pos=4)
-text(4, -7.6, "     8-var (pt), DOW, Post-Disch. Day",col="red", pos=4)
+text(4, -7.6, "     7-var (pt), DOW, Post-Disch. Day (STEP 2)",col="red", pos=4)
 
 
 dev.new() #current day
 
-plot(0:6, log(chidf$frac), xlim=c(0,6), ylim=c(-7.5,-4.5), xlab="DOW", ylab="logfrac")
+plot(0:6, log(chidf$frac), xaxt = "n",xlim=c(0,6.25), ylim=c(-7.5,-4.5), xlab="DOW", ylab="logfrac")
+custom_labels <- c("Mon", "Tues", "Weds", "Thurs", "Fri", "Sat", "Sun")
+axis(1, at = 0:6, labels = custom_labels)
 arrows(x0=0:6, y0=log(qbeta(0.025,chidf$event+1,chidf$nonevent+1)), x1=0:6, 
        y1=log(qbeta(0.975,chidf$event+1,chidf$nonevent+1)), code=3, angle=90, length=0.2, col="black", lwd=2)
 #arrows(x0=x, y0=y-3, x1=x, y1=y+3, code=3, angle=90, length=0.5, col="blue", lwd=2)
@@ -175,9 +177,10 @@ dowfit <- dowfit -avgdowncb + avgdowplt
 points((0:6+0.2), dowfit[,1],col="red")
 arrows(x0=(0:6+0.2), y0=dowfit[,2], x1=(0:6+0.2), y1=dowfit[,3], code=3, angle=90, length=0.2, col="red", lty=2,lwd = 2)
 title(main = "Fit of Risk on Current Day of the Week (DOW)")
+
 text(1, -6.8, "Indep. Bayesian CIs",col=1, pos=4)
 text(1, -7.2, "Combined (no temp.) 2.5-97.5% CI",col="red", pos=4)
-text(1, -7.4, "     8-var (pt), DOW, Post-Disch. Day",col="red", pos=4)
+text(1, -7.4, "     8-var (pt), DOW, Post-Disch. Day (STEP 2)",col="red", pos=4)
 
 
 model2 <- glm(paste("Composite_Readmit_Mort",fit2$final), data = df0, family = "binomial",na.action=na.exclude)
@@ -206,21 +209,24 @@ alterc=c(2:7,10:11)
 arvf['RF.Last.Hematocrit',alterc] = arvf['RF.Last.Hematocrit',alterc] *15
 arvf['RF.Last.Hematocrit','Row.names'] ="Last Hematocrit +15"
 
-arvf['NO2_Post_Means',alterc] = arvf['NO2_Post_Means',alterc] *35
-arvf['NO2_Post_Means','Row.names'] ="NO2_Post_Means +35"
+
+
+#arvf['NO2_Post_Means',alterc] = arvf['NO2_Post_Means',alterc] *35
+#arvf['NO2_Post_Means','Row.names'] ="NO2_Post_Means +35"
 arvf['BMI',alterc] = arvf['BMI',alterc] *30
 arvf['BMI','Row.names'] ="BMI +30"
 
 arvf['Total.ICU.Hours',alterc] = arvf['Total.ICU.Hours',alterc] *400
 arvf['Total.ICU.Hours','Row.names'] ="Total.ICU.Hours +400"
 library(ggplot2)
-labelloc = match("(Intercept)",rownames(arvf))
+#labelloc = match("(Intercept)",rownames(arvf))
+labelloc = match("RF.Last.Hematocrit",rownames(arvf))
 sp1 <- ggplot() + geom_point(data=arvf, aes(x=v2, y=factor(ID)),color="blue")+
   geom_errorbar(data=arvf,aes(xmin = lower2, xmax = upper2, y=factor(ID)),color="blue",width=0.2) +
   geom_point(data=arvf, aes(x=v1, y=ID-0.2),color="red")+geom_errorbar(data=arvf,aes(xmin = lower1, 
                                 xmax = upper1, y=ID-0.2),width=0.5,color="red",lty=2,lwd = .6) +
-  annotate("text",x=4, y=labelloc,label=paste(model2$rank-1,"-predictor model",sep=""),col='blue')+
-  annotate("text",x=4, y=labelloc-.4,label="8-pred + DOW + post-Disch Day",col='red')
+  annotate("text",x=2.5, y=labelloc,label=paste(model2$rank-1,"-predictor model (STEP 1)",sep=""),col='blue')+
+  annotate("text",x=2.5, y=labelloc-.4,label="7-pred + DOW + post-Disch Day (STEP 2)",col='red')
 print(sp1+ scale_y_discrete(breaks=arvf$ID, labels=arvf$Row.names)+xlab("Logit Score Risk") + ylab("") +geom_vline(xintercept=0,linetype=3))
 
 cblogit_preds <- predict(cblogit,se.fit=TRUE)

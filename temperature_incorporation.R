@@ -27,14 +27,14 @@ cb2 <- crossbasis(df3[91:120],lag=lag,argvar=argvar0, arglag=arglag0)
 ns2 <- onebasis(df3$DOW_Month, fun='ns',df=6)
 
 if(!exists("fit2")){
-  source("~/Documents/dlnmRev/glm_wo_temperature_new.R")
+  source("~/Documents/dlnmRev/glm_wo_temperature_noAQ.R") #new.R
 }
 
 model00 <- glm(paste("Composite_Readmit_Mort",fit2$final,"+ DOW_Discharge + ns2"), data = df3, family = "binomial",na.action=na.exclude)
 summary(model00)
 np <- crosspred(ns2,model00)
 plot(np,ci.level=0.95,ylim=c(0.33,3),log="y",ylab="RR", xlab= "Month of Surgery")
-title("Seasonal Effect in 8-pred + DOW + post-Disch Day Model")
+title("Seasonal Effect in 7-pred + DOW + post-Disch Day Model")
 #season has no effect without considering temperature
 
 if(FALSE){
